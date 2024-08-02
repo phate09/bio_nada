@@ -1,19 +1,33 @@
+import random
+
+import numpy as np
+import torch
 from sklearn.model_selection import StratifiedKFold
 from torch import nn, optim
 
-from neural_network import get_simple_model
+from neural_network import get_simple_model, neural_network_2
 from pre_process import create_dataloaders, create_tensor_from_df, get_dataframe
 
-model = get_simple_model()
+seed = 0
+torch.manual_seed(seed)
+np.random.seed(seed)
+random.seed(seed)
+
+print("Start")
+model = neural_network_2()
 criterion = nn.BCELoss()
 optimiser = optim.Adam(model.parameters(), lr=1e-4)
 k_fold = StratifiedKFold(n_splits=5, shuffle=True)
 master_df = get_dataframe()
+accuracy_list = []
+f1_score_list = []
+precision_list = []
+recall_list = []
 for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc[:, -1])):  # k-fold
     tensors = create_tensor_from_df(master_df.loc[train_idx], master_df.loc[test_idx])
     # use the * to reuse the individual variables in input
     train_loader, eval_loader = create_dataloaders(*tensors)
-    n_epochs = 1
+    n_epochs = 3
     train_accs = []
     train_losses = []
     for epoch in range(n_epochs):
@@ -32,7 +46,7 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
             loss = criterion(y_pred, y_batch)
             assert y_pred.shape == y_batch.shape
             train_loss += loss.item()
-            # Calculate training accuracy
+            # Calculate metrics
             n_examples += y_batch.size(0)  # size of the batch
             correct += (y_pred.round() == y_batch).sum().item()  # number of correct items
             true_positive += ((y_pred.round() == y_batch) & (y_batch == 1)).sum().item()
@@ -43,7 +57,7 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
             optimiser.zero_grad()
             loss.backward()
             optimiser.step()
-        print(f"Fold {i + 1}")  # +1 because i starts from 0
+        print(f"Fold {i + 1} Epoch {epoch + 1}")  # +1 because i starts from 0
         precision = true_positive / max((true_positive + false_positive), 1)  # prevents div by 0
         recall = true_positive / max((true_positive + false_negative), 1)  # prevents div by 0
         f1_score = 2 * (precision * recall) / max((precision + recall), 1)  # prevents div by 0
@@ -51,7 +65,7 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
         print(f"TRAINING: accuracy={accuracy:.2f}, f1_score={f1_score:.2f}, "
               f"precision={precision:.2f}, recall={recall:.2f}")
         # ---- validation step
-        model.eval()
+        model.eval()  # put the model in evaluation mode
         correct = 0
         n_examples = 0
         train_loss = 0
@@ -75,3 +89,13 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
         accuracy = correct / n_examples
         print(f"TEST: accuracy={accuracy:.2f}, f1_score={f1_score:.2f}, "
               f"precision={precision:.2f}, recall={recall:.2f}")
+    accuracy_list.append(accuracy)
+    f1_score_list.append(f1_score)
+    precision_list.append(precision)
+    recall_list.append(recall)
+mean_accuracy = np.mean(accuracy_list)
+mean_f1 = np.mean(f1_score_list)
+mean_precision = np.mean(precision_list)
+mean_recall = np.mean(recall_list)
+print(f"FINAL: accuracy={mean_accuracy:.2f}, f1_score={mean_f1:.2f}, "
+              f"precision={mean_precision:.2f}, recall={mean_recall:.2f}")

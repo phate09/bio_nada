@@ -5,7 +5,9 @@ import pandas as pd
 import pathlib
 import csv
 
+import sklearn.metrics
 import torch
+from torch.utils.data import DataLoader, TensorDataset
 
 # %% ---- merge all data csv in dataframe
 
@@ -48,8 +50,44 @@ model = nn.Sequential(nn.Linear(6, 128),
                       nn.ReLU(),
                       nn.Linear(128, 64),
                       nn.ReLU(),
-                      nn.Linear(64, 2),
-                      nn.Softmax(dim=1))
-criterion = nn.CrossEntropyLoss()
-optimiser = optim.Adam(model.parameters(), lr=0.001)
+                      nn.Linear(64, 1),  # just 1 output because of 2 classes
+                      nn.Sigmoid()  # just sigmoid instead of softmax
+                      )
+criterion = nn.BCELoss()  # Binary Cross Entropy
+optimiser = optim.Adam(model.parameters(), lr=1e-4)
 # %% ---- dataloaders
+batch_size = 1024
+train_loader = DataLoader(TensorDataset(x_tensor_train, y_tensor_train), batch_size=batch_size,
+                          shuffle=True)
+test_loader = DataLoader(TensorDataset(x_tensor_test, y_tensor_test), batch_size=batch_size,
+                         shuffle=False)
+
+# %% ------- training
+n_epochs = 1
+train_accs = []
+train_losses = []
+for epoch in range(n_epochs):
+    correct_train = 0
+    total_train = 0
+    train_loss = 0
+    for X_batch, y_batch in train_loader:
+        y_batch = y_batch.float().reshape(-1, 1)  # reshape and cast to float
+        # Forward pass
+        y_pred = model(X_batch)
+        loss = criterion(y_pred, y_batch)
+        assert y_pred.shape == y_batch.shape
+        train_loss += loss.item()
+        # Calculate training accuracy
+        total_train += y_batch.size(0)  # size of the batch
+        correct_train += (y_pred.round() == y_batch).sum().item()  # number of correct items
+
+        # Backward pass and optimization
+        optimiser.zero_grad()
+        loss.backward()
+        optimiser.step()
+    # ---- validation step
+    print(f"Training accuracy = {correct_train / total_train:.2f}")
+    model.eval()
+    y_pred = model(x_tensor_test)
+    validation_accuracy = (y_pred.round() == y_tensor_test.float().reshape(-1, 1)).float().mean()
+    print(f"Validation accuracy = {validation_accuracy:.2f}")

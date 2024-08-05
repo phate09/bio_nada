@@ -7,17 +7,19 @@ from torch import nn, optim
 
 from neural_network import get_simple_model, neural_network_2
 from pre_process import create_dataloaders, create_tensor_from_df, get_dataframe
+import progressbar
 
 seed = 0
 torch.manual_seed(seed)
 np.random.seed(seed)
 random.seed(seed)
-
-print("Start")
-model = neural_network_2()
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+print(f"Start. Using {device}")
+model = neural_network_2().to(device)
 criterion = nn.BCELoss()
 optimiser = optim.Adam(model.parameters(), lr=1e-4)
 k_fold = StratifiedKFold(n_splits=5, shuffle=True)
+print("Preparing dataframe")
 master_df = get_dataframe()
 accuracy_list = []
 f1_score_list = []
@@ -26,7 +28,7 @@ recall_list = []
 for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc[:, -1])):  # k-fold
     tensors = create_tensor_from_df(master_df.loc[train_idx], master_df.loc[test_idx])
     # use the * to reuse the individual variables in input
-    train_loader, eval_loader = create_dataloaders(*tensors)
+    train_loader, eval_loader = create_dataloaders(*tensors,batch_size=16384)
     n_epochs = 3
     train_accs = []
     train_losses = []
@@ -40,8 +42,10 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
         false_positive = 0
         false_negative = 0
 
-        for X_batch, y_batch in train_loader:
+        for X_batch, y_batch in progressbar.progressbar(train_loader,prefix="Batch"):
             # Forward pass
+            X_batch = X_batch.to(device)
+            y_batch = y_batch.to(device)
             y_pred = model(X_batch)
             loss = criterion(y_pred, y_batch)
             assert y_pred.shape == y_batch.shape
@@ -57,6 +61,7 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
             optimiser.zero_grad()
             loss.backward()
             optimiser.step()
+
         print(f"Fold {i + 1} Epoch {epoch + 1}")  # +1 because i starts from 0
         precision = true_positive / max((true_positive + false_positive), 1)  # prevents div by 0
         recall = true_positive / max((true_positive + false_negative), 1)  # prevents div by 0

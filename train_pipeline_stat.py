@@ -7,8 +7,7 @@ from sklearn.model_selection import StratifiedKFold
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 
-from neural_network import get_simple_model, neural_network_2, conv_neural_network, \
-    neural_network_3
+import neural_network
 from pre_process import create_dataloaders, create_tensor_from_df, get_dataframe, \
     grouped_df_to_stats, get_dataframe_processed
 import progressbar
@@ -37,12 +36,12 @@ f1_score_list = []
 precision_list = []
 recall_list = []
 for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc[:, -1])):  # k-fold
-    model = neural_network_3(master_df.shape[1] - 1).to(device)  # reinitialise model
+    model = neural_network.neural_network_3(master_df.shape[1] - 1).to(device)  # reinitialise model
     optimiser = optim.Adam(model.parameters(), lr=1e-4)
     train_groups = master_df.loc[train_idx]
     test_groups = master_df.loc[test_idx]
     X_resampled, y_resampled = rus.fit_resample(train_groups, train_groups.iloc[:, -1].values)
-    n_epochs = 301
+    n_epochs = 601
     train_accs = []
     train_losses = []
     train_stats_master_df = X_resampled
@@ -75,11 +74,11 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
         # accuracy = metrics.accuracy_score(y_true_array, y_pred_array)
         # precision = metrics.precision_score(y_true_array, y_pred_array)
         # recall = metrics.recall_score(y_true_array, y_pred_array)
-        if (epoch % 20) == 0:
+        if (epoch % 30) == 0:
             print(f"Fold {i + 1} Epoch {epoch}")  # +1 because i starts from 0
             # print(f"Train loss: {train_loss / len(train_loader)}")
             with torch.no_grad():
-                # print(classification_report(y_true_array, y_pred_array))
+                print(classification_report(y_true_array, y_pred_array))
                 # print(f"TRAINING: accuracy={accuracy:.2f}, f1_score={f1_score:.2f}, "
                 #       f"precision={precision:.2f}, recall={recall:.2f}")
                 # Precision: out of sick prediction, how many are truly sick

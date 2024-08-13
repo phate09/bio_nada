@@ -1,5 +1,7 @@
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
+import torch
 
 
 def get_simple_model():
@@ -24,7 +26,17 @@ def neural_network_2():
                           nn.Sigmoid()  # just sigmoid instead of softmax
                           )
     return model
-
+def neural_network_3(input_size):
+    model = nn.Sequential(nn.Linear(input_size, 128),
+                          nn.ReLU(),
+                          nn.Linear(128, 64),
+                          nn.ReLU(),
+                          nn.Linear(64, 64),
+                          nn.ReLU(),
+                          nn.Linear(64, 1),  # just 1 output because of 2 classes
+                          nn.Sigmoid()  # just sigmoid instead of softmax
+                          )
+    return model
 
 def conv_neural_network():
     model = nn.Sequential(nn.Conv1d(6, 128, kernel_size=5),

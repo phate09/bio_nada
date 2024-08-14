@@ -31,7 +31,9 @@ k_fold = StratifiedKFold(n_splits=2, shuffle=True)
 rus = RandomOverSampler(random_state=0)
 
 print("Preparing dataframe")
+# Remember: last column is the label
 master_df = get_dataframe_processed(label_file="some-lab.csv")
+
 accuracy_list = []
 f1_score_list = []
 precision_list = []

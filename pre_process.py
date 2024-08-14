@@ -66,7 +66,7 @@ def get_dataframe_processed(data_folder: str = "data",
             df = pd.read_csv(os.path.join(data_folder, filee))  # Read the CSV data into a DataFrame
             quantiles = 20
             quantile_list = []
-            train_data_df = df.iloc[:, :-2]
+            train_data_df = df
 
             for i in range(1, quantiles):
                 quantile_list.append(train_data_df.quantile(i / quantiles))
@@ -85,7 +85,7 @@ def get_dataframe_processed(data_folder: str = "data",
             pre_y_tensor.append(y_label)
         master_train_data_df = pd.DataFrame(pre_tensor)
         master_y_data_df = pd.DataFrame(pre_y_tensor)
-        master_df = pd.concat([master_train_data_df, master_y_data_df], axis=1)
+        master_df = pd.concat([master_train_data_df, master_y_data_df], axis=1)  # append lbl at end
         master_df.to_csv(preprocessed_file, header=False, index=False)
     else:
         master_df = pd.read_csv(preprocessed_file, index_col=False, header=None)

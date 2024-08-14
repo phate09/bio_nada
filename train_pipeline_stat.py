@@ -29,6 +29,7 @@ criterion = nn.BCELoss()
 k_fold = StratifiedKFold(n_splits=2, shuffle=True)
 # rus = RandomUnderSampler(random_state=0, replacement=False)
 rus = RandomOverSampler(random_state=0)
+
 print("Preparing dataframe")
 master_df = get_dataframe_processed(label_file="some-lab.csv")
 accuracy_list = []

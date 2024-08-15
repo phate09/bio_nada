@@ -8,6 +8,7 @@ from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 
 import neural_network
+from focal_loss import FocalLoss
 from pre_process import create_dataloaders, create_tensor_from_df, get_dataframe, \
     grouped_df_to_stats, get_dataframe_processed
 import progressbar
@@ -24,7 +25,8 @@ device = torch.device(
     'cpu')  # torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print(f"Start. Using {device}")
 
-criterion = nn.BCELoss()
+# criterion = nn.BCELoss()
+criterion = FocalLoss()
 
 k_fold = StratifiedKFold(n_splits=2, shuffle=True)
 # rus = RandomUnderSampler(random_state=0, replacement=False)
@@ -35,15 +37,19 @@ print("Preparing dataframe")
 master_df = get_dataframe_processed(label_file="some-lab.csv")
 
 accuracy_list = []
-f1_score_list = []
-precision_list = []
-recall_list = []
+f1_score_list_0 = []
+precision_list_0 = []
+recall_list_0 = []
+f1_score_list_1 = []
+precision_list_1 = []
+recall_list_1 = []
 for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc[:, -1])):  # k-fold
     model = neural_network.neural_network_3(master_df.shape[1] - 1).to(device)  # reinitialise model
     optimiser = optim.Adam(model.parameters(), lr=1e-4)
     train_groups = master_df.loc[train_idx]
     test_groups = master_df.loc[test_idx]
-    X_resampled, y_resampled = rus.fit_resample(train_groups, train_groups.iloc[:, -1].values)
+    # X_resampled, y_resampled = rus.fit_resample(train_groups, train_groups.iloc[:, -1].values)
+    X_resampled = train_groups
     n_epochs = 601
     train_accs = []
     train_losses = []
@@ -97,19 +103,29 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
                     device)
 
                 y_pred = model(x_tensor_eval).squeeze()
-                y_true_array = y_tensor_eval.cpu().detach().numpy()
-                y_pred_array = y_pred.cpu().detach().numpy().round()
+                y_true_array = y_tensor_eval.cpu().detach().numpy().astype(bool)
+                y_pred_array = y_pred.cpu().detach().numpy().round().astype(bool)
                 print(classification_report(y_true_array, y_pred_array))
-                f1_score = metrics.f1_score(y_true_array, y_pred_array)
+                prec_0, rec_0, f1_score_0, _ = precision_recall_fscore_support(y_true_array,
+                                                                               y_pred_array,
+                                                                               pos_label=False,
+                                                                               average='binary')
+                prec_1, rec_1, f1_score_1, _ = precision_recall_fscore_support(y_true_array,
+                                                                               y_pred_array,
+                                                                               pos_label=True,
+                                                                               average='binary')
                 accuracy = metrics.accuracy_score(y_true_array, y_pred_array)
-                precision = metrics.precision_score(y_true_array, y_pred_array)
-                recall = metrics.recall_score(y_true_array, y_pred_array)
                 # print(f"EVALUATION: accuracy={accuracy:.2f}, f1_score={f1_score:.2f}, "
                 #       f"precision={precision:.2f}, recall={recall:.2f}")
     accuracy_list.append(accuracy)
-    f1_score_list.append(f1_score)
-    precision_list.append(precision)
-    recall_list.append(recall)
+    f1_score_list_0.append(f1_score_0)
+    precision_list_0.append(prec_0)
+    recall_list_0.append(rec_0)
+    f1_score_list_1.append(f1_score_1)
+    precision_list_1.append(prec_1)
+    recall_list_1.append(rec_1)
 print(
-    f"MEAN EVALUATION accuracy={np.mean(accuracy_list):.2f}, f1_score={np.mean(f1_score_list):.2f}, "
-    f"precision={np.mean(precision_list):.2f}, recall={np.mean(recall_list):.2f}")
+    f"MEAN EVALUATION accuracy={np.mean(accuracy_list):.2f}, f1_score_0={np.mean(f1_score_list_0):.2f}, "
+    f"precision_0={np.mean(precision_list_0):.2f}, recall_0={np.mean(recall_list_0):.2f},"
+    f" f1_score_1={np.mean(f1_score_list_1):.2f}, precision_1={np.mean(precision_list_1):.2f}, "
+    f"recall_1={np.mean(recall_list_1):.2f}")

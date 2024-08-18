@@ -30,21 +30,24 @@ def get_dataframe(data_folder: str = "data", label_file: str = "label.csv") -> p
 
 
 def impute_nan(label_df: pd.DataFrame) -> pd.DataFrame:
-    return label_df.fillna({'age': label_df['age'].median(),
-                            'trop': label_df['trop'].median(),
-                            'ck': label_df['ck'].median(),
-                            'egfr': label_df['egfr'].median(),
-                            'chol': label_df['chol'].median(),
-                            'htn': 0,
-                            'dm': 0,
-                            'mi': 0,
-                            'pci': 0,
-                            'cabg': 0,
-                            'cva': 0,
-                            'copd': 0,
-                            'smoke': 0,
-                            'ef_1': label_df['ef_1'].median()
-                            })
+    if 'age' in label_df.columns:
+        return label_df.fillna({'age': label_df['age'].median(),
+                                'trop': label_df['trop'].median(),
+                                'ck': label_df['ck'].median(),
+                                'egfr': label_df['egfr'].median(),
+                                'chol': label_df['chol'].median(),
+                                'htn': 0,
+                                'dm': 0,
+                                'mi': 0,
+                                'pci': 0,
+                                'cabg': 0,
+                                'cva': 0,
+                                'copd': 0,
+                                'smoke': 0,
+                                'ef_1': label_df['ef_1'].median()
+                                })
+    else:
+        return label_df
 
 
 def get_dataframe_processed(data_folder: str = "data",

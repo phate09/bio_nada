@@ -34,7 +34,8 @@ rus = RandomOverSampler(random_state=0)
 
 print("Preparing dataframe")
 # Remember: last column is the label
-master_df = get_dataframe_processed(label_file="some-lab.csv")
+#accuracy=0.72, f1_score_0=0.82, precision_0=0.82, recall_0=0.83, f1_score_1=0.31, precision_1=0.32, recall_1=0.30
+master_df = get_dataframe_processed(label_file="label.csv")
 
 accuracy_list = []
 f1_score_list_0 = []

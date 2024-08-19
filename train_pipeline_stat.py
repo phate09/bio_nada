@@ -21,8 +21,7 @@ seed = 0
 torch.manual_seed(seed)
 np.random.seed(seed)
 random.seed(seed)
-device = torch.device(
-    'cpu')  # torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print(f"Start. Using {device}")
 
 # criterion = nn.BCELoss()

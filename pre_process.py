@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import progressbar
 import torch
+from sklearn.mixture import GaussianMixture
+from sklearn.preprocessing import RobustScaler
 from torch.utils.data import DataLoader, TensorDataset
 
 
@@ -85,6 +87,65 @@ def get_dataframe_processed(data_folder: str = "data",
             y_label = y_row[label_column]
             y_data = y_row[(y_row.index != label_column) & (y_row.index != "id_random")]
             pre_tensor.append(np.concatenate([statistics_df.values.flatten(), y_data.values]))
+            pre_y_tensor.append(y_label)
+        master_train_data_df = pd.DataFrame(pre_tensor)
+        master_y_data_df = pd.DataFrame(pre_y_tensor)
+        master_df = pd.concat([master_train_data_df, master_y_data_df], axis=1)  # append lbl at end
+        master_df.to_csv(preprocessed_file, header=False, index=False)
+    else:
+        master_df = pd.read_csv(preprocessed_file, index_col=False, header=None)
+    return master_df
+
+
+def get_dataframe_processed_unsupervised(data_folder: str = "data",
+                                         label_file: str = "label.csv",
+                                         label_column: str = "Label",
+                                         scaler_file="robustScaler.pkl",
+                                         clustering_ifle="gaussianMixtureModel.pkl") -> pd.DataFrame:
+    preprocessed_file = Path(".preprocessed_unsupervised.csv")
+    scaler_file = Path(scaler_file)
+    unsupervised_model_file = Path(clustering_ifle)
+    if not preprocessed_file.is_file():
+        # ---- merge all data csv in dataframe
+        pre_tensor = []
+        pre_y_tensor = []
+        label_df_original = pd.read_csv(label_file)
+        # fill blanks in label_df
+        label_df = impute_nan(label_df_original)
+        with scaler_file.open(mode='rb') as f:
+            scaler: RobustScaler = pickle.load(f)
+        with unsupervised_model_file.open(mode='rb') as f:
+            gaussian_model: GaussianMixture = pickle.load(f)
+        for filee in progressbar.progressbar(os.listdir(
+            data_folder),
+            prefix="Preprocessing files"):  # Loop through CSV files in the dynamically specified directory
+            if filee.startswith(".") or not filee.endswith(".csv"):
+                continue
+            df = pd.read_csv(os.path.join(data_folder, filee))  # Read the CSV data into a DataFrame
+            quantiles = 20
+            quantile_list = []
+            train_data_df = df  # pd.DataFrame(scaler.transform(df))
+            for i in range(1, quantiles):
+                quantile_list.append(train_data_df.quantile(i / quantiles))
+            cv = train_data_df.std() / train_data_df.mean()
+            range_value = train_data_df.max() - train_data_df.min()
+            iqr = train_data_df.quantile(0.75) - train_data_df.quantile(0.25)
+            train_data_rescaled = scaler.transform(train_data_df)
+            train_data_cluster = pd.DataFrame(gaussian_model.predict(train_data_rescaled))
+            statistics_df = pd.concat(
+                [*quantile_list, train_data_df.mean(), train_data_df.std(),
+                 train_data_df.kurtosis(),
+                 train_data_df.skew(), cv, range_value, iqr, train_data_df.corr()], axis=1)
+            value_counts = np.array(
+                [train_data_cluster[train_data_cluster == x].count().item() for x in
+                 range(gaussian_model.n_components)],
+                dtype=np.float32)
+            id_random = int(filee.removesuffix(".csv"))
+            y_row = label_df[label_df["id_random"] == id_random].iloc[0, :]
+            y_label = y_row[label_column]
+            y_data = y_row[(y_row.index != label_column) & (y_row.index != "id_random")]
+            pre_tensor.append(
+                np.concatenate([statistics_df.values.flatten(), value_counts, y_data.values]))
             pre_y_tensor.append(y_label)
         master_train_data_df = pd.DataFrame(pre_tensor)
         master_y_data_df = pd.DataFrame(pre_y_tensor)

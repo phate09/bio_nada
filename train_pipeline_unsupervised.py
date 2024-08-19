@@ -17,7 +17,7 @@ import pickle
 from neural_network import get_simple_model, neural_network_2, conv_neural_network, \
     neural_network_3, neural_network_4
 from pre_process import create_dataloaders, create_tensor_from_df, get_dataframe, \
-    grouped_df_to_stats, get_dataframe_processed
+    grouped_df_to_stats, get_dataframe_processed, get_dataframe_processed_unsupervised
 import progressbar
 import pandas as pd
 from imblearn.under_sampling import RandomUnderSampler
@@ -116,3 +116,4 @@ if visualise:
     plt.show()
 master_df = pd.DataFrame(X_train)
 master_df[len(master_df.columns)] = full_df['Label']
+get_dataframe_processed_unsupervised()

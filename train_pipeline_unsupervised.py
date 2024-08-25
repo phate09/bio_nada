@@ -87,7 +87,7 @@ if not scaler_file.is_file() or not unsupervised_model_file.is_file():
         )
         plt.show()
     else:
-        gaussian_model = GaussianMixture(n_components=8, covariance_type='diag')  # best combination
+        gaussian_model = GaussianMixture(n_components=3, covariance_type='diag')  # best combination
         gaussian_model.fit(X_train)
     with unsupervised_model_file.open(mode='wb') as f:
         pickle.dump(gaussian_model, f)

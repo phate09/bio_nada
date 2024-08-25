@@ -35,6 +35,7 @@ rus = RandomOverSampler(random_state=0)
 print("Preparing dataframe")
 # Remember: last column is the label
 # accuracy=0.72, f1_score_0=0.82, precision_0=0.82, recall_0=0.83, f1_score_1=0.31, precision_1=0.32, recall_1=0.30
+# MEAN EVALUATION accuracy=0.70, f1_score_0=0.80, precision_0=0.84, recall_0=0.76, f1_score_1=0.38, precision_1=0.33, recall_1=0.45
 master_df = get_dataframe_processed(label_file="label.csv")
 # master_df = get_dataframe_processed_unsupervised(label_file="label.csv")
 
@@ -46,9 +47,10 @@ f1_score_list_1 = []
 precision_list_1 = []
 recall_list_1 = []
 for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc[:, -1])):  # k-fold
-    model = neural_network.neural_network_3(master_df.shape[1] - 1).to(device).double()  # reinitialise model
+    model = neural_network.neural_network_3(master_df.shape[1] - 1).to(
+        device).double()  # reinitialise model
     optimiser = optim.Adam(model.parameters(), lr=1e-3)
-    scheduler = ExponentialLR(optimiser, gamma=0.995)  # should be about 1/10 after 600 epochs
+    scheduler = ExponentialLR(optimiser, gamma=0.995)  # should be about 1/20 after 600 epochs
     train_groups = master_df.loc[train_idx]
     test_groups = master_df.loc[test_idx]
     X_resampled, y_resampled = rus.fit_resample(train_groups, train_groups.iloc[:, -1].values)
@@ -128,7 +130,10 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
     precision_list_1.append(prec_1)
     recall_list_1.append(rec_1)
 print(
-    f"MEAN EVALUATION accuracy={np.mean(accuracy_list):.2f}, f1_score_0={np.mean(f1_score_list_0):.2f}, "
-    f"precision_0={np.mean(precision_list_0):.2f}, recall_0={np.mean(recall_list_0):.2f},"
-    f" f1_score_1={np.mean(f1_score_list_1):.2f}, precision_1={np.mean(precision_list_1):.2f}, "
-    f"recall_1={np.mean(recall_list_1):.2f}")
+    f"MEAN EVALUATION accuracy={np.mean(accuracy_list):.2f}, "
+    f"f1_score_0={np.mean(f1_score_list_0):.2f}, "
+    f" f1_score_1={np.mean(f1_score_list_1):.2f},"
+    f" precision_0={np.mean(precision_list_0):.2f},"
+    f" precision_1={np.mean(precision_list_1):.2f},"
+    f" recall_0={np.mean(recall_list_0):.2f},"
+    f" recall_1={np.mean(recall_list_1):.2f}")

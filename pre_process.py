@@ -130,7 +130,7 @@ def get_dataframe_processed_unsupervised(data_folder: str = "data",
             cv = train_data_df.std() / train_data_df.mean()
             range_value = train_data_df.max() - train_data_df.min()
             iqr = train_data_df.quantile(0.75) - train_data_df.quantile(0.25)
-            train_data_rescaled = scaler.transform(train_data_df)
+            train_data_rescaled = scaler.transform(train_data_df.values)
             train_data_cluster = pd.DataFrame(gaussian_model.predict(train_data_rescaled))
             statistics_df = pd.concat(
                 [*quantile_list, train_data_df.mean(), train_data_df.std(),
@@ -139,7 +139,7 @@ def get_dataframe_processed_unsupervised(data_folder: str = "data",
             value_counts = np.array(
                 [train_data_cluster[train_data_cluster == x].count().item() for x in
                  range(gaussian_model.n_components)],
-                dtype=np.float32)
+                dtype=np.int32)
             id_random = int(filee.removesuffix(".csv"))
             y_row = label_df[label_df["id_random"] == id_random].iloc[0, :]
             y_label = y_row[label_column]

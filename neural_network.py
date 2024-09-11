@@ -3,6 +3,8 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch
 
+from soft_ordering_1dcnn import SoftOrdering1DCNN
+
 
 def get_simple_model():
     model = nn.Sequential(nn.Linear(6, 128),
@@ -26,6 +28,8 @@ def neural_network_2():
                           nn.Sigmoid()  # just sigmoid instead of softmax
                           )
     return model
+
+
 def neural_network_3(input_size):
     model = nn.Sequential(nn.Linear(input_size, 128),
                           nn.ReLU(),
@@ -37,6 +41,8 @@ def neural_network_3(input_size):
                           nn.Sigmoid()  # just sigmoid instead of softmax
                           )
     return model
+
+
 def neural_network_4(input_size):
     model = nn.Sequential(nn.Linear(input_size, 128),
                           nn.ReLU(),
@@ -51,6 +57,8 @@ def neural_network_4(input_size):
                           nn.Sigmoid()  # just sigmoid instead of softmax
                           )
     return model
+
+
 def neural_network_5(input_size):
     model = nn.Sequential(nn.Linear(input_size, 64),
                           nn.Tanh(),
@@ -60,6 +68,8 @@ def neural_network_5(input_size):
                           nn.Sigmoid()  # just sigmoid instead of softmax
                           )
     return model
+
+
 def neural_network_6(input_size):
     model = nn.Sequential(nn.Linear(input_size, 128),
                           nn.LeakyReLU(),
@@ -71,6 +81,8 @@ def neural_network_6(input_size):
                           nn.Sigmoid()  # just sigmoid instead of softmax
                           )
     return model
+
+
 def neural_network_tabular(input_size):
     model = nn.Sequential(nn.Linear(input_size, 128),
                           nn.BatchNorm1d(128),
@@ -115,6 +127,7 @@ def neural_network_7(input_size):
     )
     return model
 
+
 def conv_neural_network():
     model = nn.Sequential(nn.Conv1d(6, 128, kernel_size=5),
                           nn.ReLU(),
@@ -132,9 +145,18 @@ def conv_neural_network():
 import torch.nn as nn
 import torch
 
+
+def soft_ordering_1dcnn_2(input_dim, output_dim=1, sign_size=32, cha_input=16, cha_hidden=32, K=2,
+                          dropout_input=0.2, dropout_hidden=0.2, dropout_output=0.2):
+    model = SoftOrdering1DCNN(input_dim=input_dim, output_dim=output_dim, sign_size=sign_size,
+                              cha_input=cha_input, cha_hidden=cha_hidden, K=K,
+                              dropout_input=dropout_input, dropout_hidden=dropout_hidden,
+                              dropout_output=dropout_output)
+    return model
+
+
 def soft_ordering_1dcnn(input_dim, output_dim=1, sign_size=32, cha_input=16, cha_hidden=32, K=2,
                         dropout_input=0.2, dropout_hidden=0.2, dropout_output=0.2):
-
     hidden_size = sign_size * cha_input
     sign_size1 = sign_size
     sign_size2 = sign_size // 2
@@ -150,25 +172,30 @@ def soft_ordering_1dcnn(input_dim, output_dim=1, sign_size=32, cha_input=16, cha
 
         # 1st conv layer
         nn.BatchNorm1d(cha_input),
-        nn.utils.weight_norm(nn.Conv1d(cha_input, cha_input * K, kernel_size=5, stride=1, padding=2, groups=cha_input, bias=False)),
+        nn.utils.weight_norm(nn.Conv1d(cha_input, cha_input * K, kernel_size=5, stride=1, padding=2,
+                                       groups=cha_input, bias=False)),
         nn.ReLU(),
         nn.AdaptiveAvgPool1d(output_size=sign_size2),
 
         # 2nd conv layer
         nn.BatchNorm1d(cha_input * K),
         nn.Dropout(dropout_hidden),
-        nn.utils.weight_norm(nn.Conv1d(cha_input * K, cha_hidden, kernel_size=3, stride=1, padding=1, bias=False)),
+        nn.utils.weight_norm(
+            nn.Conv1d(cha_input * K, cha_hidden, kernel_size=3, stride=1, padding=1, bias=False)),
         nn.ReLU(),
 
         # 3rd conv layer
         nn.BatchNorm1d(cha_hidden),
         nn.Dropout(dropout_hidden),
-        nn.utils.weight_norm(nn.Conv1d(cha_hidden, cha_hidden, kernel_size=3, stride=1, padding=1, bias=False)),
+        nn.utils.weight_norm(
+            nn.Conv1d(cha_hidden, cha_hidden, kernel_size=3, stride=1, padding=1, bias=False)),
         nn.ReLU(),
 
         # 4th conv layer
         nn.BatchNorm1d(cha_hidden),
-        nn.utils.weight_norm(nn.Conv1d(cha_hidden, cha_hidden, kernel_size=5, stride=1, padding=2, groups=cha_hidden, bias=False)),
+        nn.utils.weight_norm(
+            nn.Conv1d(cha_hidden, cha_hidden, kernel_size=5, stride=1, padding=2, groups=cha_hidden,
+                      bias=False)),
         nn.ReLU(),
         nn.AvgPool1d(kernel_size=4, stride=2, padding=1),
 
@@ -184,7 +211,7 @@ def soft_ordering_1dcnn(input_dim, output_dim=1, sign_size=32, cha_input=16, cha
 
 
 def tabnet_sequential(input_dim, output_dim, sign_size=32, cha_input=16, cha_hidden=32, K=2,
-                     dropout_input=0.2, dropout_hidden=0.2, dropout_output=0.2):
+                      dropout_input=0.2, dropout_hidden=0.2, dropout_output=0.2):
     hidden_size = sign_size * cha_input
     sign_size1 = sign_size
     sign_size2 = sign_size // 2
@@ -200,25 +227,30 @@ def tabnet_sequential(input_dim, output_dim, sign_size=32, cha_input=16, cha_hid
 
         # 1st conv layer
         nn.BatchNorm1d(cha_input),
-        nn.utils.weight_norm(nn.Conv1d(cha_input, cha_input * K, kernel_size=5, stride=1, padding=2, groups=cha_input, bias=False)),
+        nn.utils.weight_norm(nn.Conv1d(cha_input, cha_input * K, kernel_size=5, stride=1, padding=2,
+                                       groups=cha_input, bias=False)),
         nn.ReLU(),
         nn.AdaptiveAvgPool1d(output_size=sign_size2),
 
         # 2nd conv layer
         nn.BatchNorm1d(cha_input * K),
         nn.Dropout(dropout_hidden),
-        nn.utils.weight_norm(nn.Conv1d(cha_input * K, cha_hidden, kernel_size=3, stride=1, padding=1, bias=False)),
+        nn.utils.weight_norm(
+            nn.Conv1d(cha_input * K, cha_hidden, kernel_size=3, stride=1, padding=1, bias=False)),
         nn.ReLU(),
 
         # 3rd conv layer
         nn.BatchNorm1d(cha_hidden),
         nn.Dropout(dropout_hidden),
-        nn.utils.weight_norm(nn.Conv1d(cha_hidden, cha_hidden, kernel_size=3, stride=1, padding=1, bias=False)),
+        nn.utils.weight_norm(
+            nn.Conv1d(cha_hidden, cha_hidden, kernel_size=3, stride=1, padding=1, bias=False)),
         nn.ReLU(),
 
         # 4th conv layer
         nn.BatchNorm1d(cha_hidden),
-        nn.utils.weight_norm(nn.Conv1d(cha_hidden, cha_hidden, kernel_size=5, stride=1, padding=2, groups=cha_hidden, bias=False)),
+        nn.utils.weight_norm(
+            nn.Conv1d(cha_hidden, cha_hidden, kernel_size=5, stride=1, padding=2, groups=cha_hidden,
+                      bias=False)),
         nn.ReLU(),
         nn.AvgPool1d(kernel_size=4, stride=2, padding=1),
 
@@ -231,7 +263,6 @@ def tabnet_sequential(input_dim, output_dim, sign_size=32, cha_input=16, cha_hid
     )
 
     return model
-
 
 
 # Utility layer to reshape the tensor inside nn.Sequential

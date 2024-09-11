@@ -52,7 +52,7 @@ for alpha in alpha_values:
         for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc[:, -1])):
             # Initialize the model and optimizer for each fold and each combination of alpha and gamma
             #model = neural_network.neural_network_4(master_df.shape[1] - 1).to(device)
-            model = neural_network.soft_ordering_1dcnn(input_dim=master_df.shape[1] - 1, output_dim=1).to(device)  # to use soft ordering
+            model = neural_network.soft_ordering_1dcnn_2(input_dim=master_df.shape[1] - 1, output_dim=1).to(device)  # to use soft ordering
             optimizer = optim.Adam(model.parameters(), lr=1e-4)
             criterion = FocalLoss(alpha=alpha, gamma=gamma)
 

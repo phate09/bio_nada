@@ -26,7 +26,7 @@ np.random.seed(seed)
 random.seed(seed)
 device = torch.device('cpu')#torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print(f"Start. Using {device}")
-
+# ray.init(local_mode=True)
 master_df = get_dataframe_processed(label_file="label.csv")
 def train(config: dict):
     # if config["loss"] == "BCE":
@@ -56,7 +56,7 @@ def train(config: dict):
     recall_list_1 = []
     for i, (train_idx, test_idx) in enumerate(
         k_fold.split(master_df, master_df.iloc[:, -1])):  # k-fold
-        model = neural_network.soft_ordering_1dcnn(master_df.shape[1] - 1, output_dim=1).to(
+        model = neural_network.soft_ordering_1dcnn_2(master_df.shape[1] - 1).to(
             device).double()  # reinitialise model
         optimiser = optim.Adam(model.parameters(), lr=1e-3)
         scheduler = ExponentialLR(optimiser, gamma=0.995)  # should be about 1/20 after 600 epochs

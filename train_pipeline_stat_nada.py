@@ -5,13 +5,12 @@ import torch
 from sklearn.metrics import classification_report, precision_recall_fscore_support
 from sklearn.model_selection import StratifiedKFold
 from torch import nn, optim
-from torch.optim.lr_scheduler import ExponentialLR
 from torch.utils.data import DataLoader, TensorDataset
 
 import neural_network
 from focal_loss import FocalLoss
 from pre_process import create_dataloaders, create_tensor_from_df, get_dataframe, \
-    grouped_df_to_stats, get_dataframe_processed, get_dataframe_processed_unsupervised
+    grouped_df_to_stats, get_dataframe_processed
 import progressbar
 import pandas as pd
 from imblearn.under_sampling import RandomUnderSampler
@@ -22,22 +21,23 @@ seed = 0
 torch.manual_seed(seed)
 np.random.seed(seed)
 random.seed(seed)
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+device = torch.device(
+    'cpu')  # torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print(f"Start. Using {device}")
 
 # criterion = nn.BCELoss()
-criterion = FocalLoss(alpha=0.5,gamma=0.2)
+criterion = FocalLoss()
 
 k_fold = StratifiedKFold(n_splits=2, shuffle=True)
 # rus = RandomUnderSampler(random_state=0, replacement=False)
-rus = RandomOverSampler(random_state=0)
+# rus = RandomOverSampler(random_state=0)
+
 
 print("Preparing dataframe")
+
 # Remember: last column is the label
 # accuracy=0.72, f1_score_0=0.82, precision_0=0.82, recall_0=0.83, f1_score_1=0.31, precision_1=0.32, recall_1=0.30
-# MEAN EVALUATION accuracy=0.70, f1_score_0=0.80, precision_0=0.84, recall_0=0.76, f1_score_1=0.38, precision_1=0.33, recall_1=0.45
-master_df = get_dataframe_processed(label_file="label.csv")
-# master_df = get_dataframe_processed_unsupervised(label_file="label.csv")
+master_df = get_dataframe_processed(label_file="lab-21.csv")
 
 accuracy_list = []
 f1_score_list_0 = []
@@ -46,15 +46,16 @@ recall_list_0 = []
 f1_score_list_1 = []
 precision_list_1 = []
 recall_list_1 = []
+
 for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc[:, -1])):  # k-fold
-    model = neural_network.neural_network_3(master_df.shape[1] - 1).to(
-        device).double()  # reinitialise model
-    optimiser = optim.Adam(model.parameters(), lr=1e-3)
-    scheduler = ExponentialLR(optimiser, gamma=0.995)  # should be about 1/20 after 600 epochs
+    model = neural_network.neural_network_4(master_df.shape[1] - 1).to(device)  # reinitialise model
+    # model = neural_network.soft_ordering_1dcnn(input_dim=master_df.shape[1] - 1, output_dim=1).to(device)  # to use soft ordering
+
+    optimiser = optim.Adam(model.parameters(), lr=1e-4)
     train_groups = master_df.loc[train_idx]
     test_groups = master_df.loc[test_idx]
-    X_resampled, y_resampled = rus.fit_resample(train_groups, train_groups.iloc[:, -1].values)
-    # X_resampled = train_groups
+    # X_resampled, y_resampled = rus.fit_resample(train_groups, train_groups.iloc[:, -1].values) # activete if i use under or over sample
+    X_resampled = train_groups  # to use without any random over or under
     n_epochs = 601
     train_accs = []
     train_losses = []
@@ -66,10 +67,10 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
         train_stats_master_df = train_stats_master_df.sample(frac=1)  # shuffle
         x_tensor_train = torch.tensor(train_stats_master_df.iloc[:, :-1].values,
                                       dtype=torch.float).to(
-            device).double()  # exclude last two columns
+            device)  # exclude last two columns
         y_tensor_train = torch.tensor(train_stats_master_df.iloc[:, -1].values,
                                       dtype=torch.float).to(
-            device).double()
+            device)
         # train_loader = DataLoader(TensorDataset(x_tensor_train, y_tensor_train), batch_size=16,
         #                           shuffle=True)
         # train_loss = 0
@@ -81,7 +82,7 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
         optimiser.zero_grad()
         loss.backward()
         optimiser.step()
-        scheduler.step()
+
         y_true_array = y_tensor_train.cpu().detach().numpy()
         y_pred_array = y_pred.cpu().detach().numpy().round()
         # f1_score = metrics.f1_score(y_true_array, y_pred_array)
@@ -102,10 +103,10 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
                 model.eval()  # put the model in evaluation mode
                 x_tensor_eval = torch.tensor(eval_stats_master_df.iloc[:, :-1].values,
                                              dtype=torch.float).to(
-                    device).double()  # exclude last two columns
+                    device)  # exclude last two columns
                 y_tensor_eval = torch.tensor(eval_stats_master_df.iloc[:, -1].values,
                                              dtype=torch.float).to(
-                    device).double()
+                    device)
 
                 y_pred = model(x_tensor_eval).squeeze()
                 y_true_array = y_tensor_eval.cpu().detach().numpy().astype(bool)
@@ -129,11 +130,14 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
     f1_score_list_1.append(f1_score_1)
     precision_list_1.append(prec_1)
     recall_list_1.append(rec_1)
+# print(
+#    f"MEAN EVALUATION accuracy={np.mean(accuracy_list):.2f}, "
+#    f"precision_0={np.mean(precision_list_0):.2f}, recall_0={np.mean(recall_list_0):.2f}, f1_score_0={np.mean(f1_score_list_0):.2f}, "
+#    f"precision_1={np.mean(precision_list_1):.2f}, recall_1={np.mean(recall_list_1):.2f}, f1_score_1={np.mean(f1_score_list_1):.2f}"
+# )
+
 print(
-    f"MEAN EVALUATION accuracy={np.mean(accuracy_list):.2f}, "
-    f"f1_score_0={np.mean(f1_score_list_0):.2f}, "
-    f" f1_score_1={np.mean(f1_score_list_1):.2f},"
-    f" precision_0={np.mean(precision_list_0):.2f},"
-    f" precision_1={np.mean(precision_list_1):.2f},"
-    f" recall_0={np.mean(recall_list_0):.2f},"
-    f" recall_1={np.mean(recall_list_1):.2f}")
+    f"MEAN EVALUATION accuracy={np.mean(accuracy_list) * 100:.0f}, "
+    f"precision_0={np.mean(precision_list_0) * 100:.0f}, recall_0={np.mean(recall_list_0) * 100:.0f}, f1_score_0={np.mean(f1_score_list_0) * 100:.0f}, "
+    f"precision_1={np.mean(precision_list_1) * 100:.0f}, recall_1={np.mean(recall_list_1) * 100:.0f}, f1_score_1={np.mean(f1_score_list_1) * 100:.0f}"
+)

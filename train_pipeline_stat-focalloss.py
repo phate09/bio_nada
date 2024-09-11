@@ -23,7 +23,7 @@ gamma_values = [1,2,3,4,5]
 
 # Prepare dataframe
 print("Preparing dataframe")
-master_df = get_dataframe_processed(label_file="lab-15.csv")
+master_df = get_dataframe_processed(label_file="lab-21.csv")
 
 # Placeholder lists to store results for different alpha and gamma combinations
 results = []

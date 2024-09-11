@@ -22,21 +22,21 @@ seed = 0
 torch.manual_seed(seed)
 np.random.seed(seed)
 random.seed(seed)
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+device = torch.device('cpu')#torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print(f"Start. Using {device}")
 
 # criterion = nn.BCELoss()
-criterion = FocalLoss(alpha=0.5,gamma=0.2)
+criterion = FocalLoss(alpha=0.5,gamma=0.5)
 
 k_fold = StratifiedKFold(n_splits=2, shuffle=True)
 # rus = RandomUnderSampler(random_state=0, replacement=False)
-rus = RandomOverSampler(random_state=0)
+# rus = RandomOverSampler(random_state=0)
 
 print("Preparing dataframe")
 # Remember: last column is the label
 # accuracy=0.72, f1_score_0=0.82, precision_0=0.82, recall_0=0.83, f1_score_1=0.31, precision_1=0.32, recall_1=0.30
 # MEAN EVALUATION accuracy=0.70, f1_score_0=0.80, precision_0=0.84, recall_0=0.76, f1_score_1=0.38, precision_1=0.33, recall_1=0.45
-master_df = get_dataframe_processed(label_file="label.csv")
+master_df = get_dataframe_processed(label_file="lab-21.csv")
 # master_df = get_dataframe_processed_unsupervised(label_file="label.csv")
 
 accuracy_list = []
@@ -53,8 +53,8 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
     scheduler = ExponentialLR(optimiser, gamma=0.995)  # should be about 1/20 after 600 epochs
     train_groups = master_df.loc[train_idx]
     test_groups = master_df.loc[test_idx]
-    X_resampled, y_resampled = rus.fit_resample(train_groups, train_groups.iloc[:, -1].values)
-    # X_resampled = train_groups
+    # X_resampled, y_resampled = rus.fit_resample(train_groups, train_groups.iloc[:, -1].values)
+    X_resampled = train_groups
     n_epochs = 601
     train_accs = []
     train_losses = []

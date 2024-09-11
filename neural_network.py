@@ -132,7 +132,7 @@ def conv_neural_network():
 import torch.nn as nn
 import torch
 
-def soft_ordering_1dcnn(input_dim, output_dim, sign_size=32, cha_input=16, cha_hidden=32, K=2,
+def soft_ordering_1dcnn(input_dim, output_dim=1, sign_size=32, cha_input=16, cha_hidden=32, K=2,
                         dropout_input=0.2, dropout_hidden=0.2, dropout_output=0.2):
 
     hidden_size = sign_size * cha_input

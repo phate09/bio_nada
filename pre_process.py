@@ -39,8 +39,8 @@ def impute_nan(label_df: pd.DataFrame) -> pd.DataFrame:
                                 'ck': label_df['ck'].median(),
                                 'egfr': label_df['egfr'].median(),
                                 'chol': label_df['chol'].median(),
-                                #'bmi': label_df['bmi'].median(),
-                                #'wcc': label_df['wcc'].median(),
+                                'bmi': label_df['bmi'].median(),
+                                'wcc': label_df['wcc'].median(),
                                 'htn': 0,
                                 'dm': 0,
                                 'mi': 0,
@@ -49,11 +49,11 @@ def impute_nan(label_df: pd.DataFrame) -> pd.DataFrame:
                                 'cva': 0,
                                 'copd': 0,
                                 'smoke': 0,
-                                #'tapse_1': label_df['tapse_1'].median(),
+                                'tapse_1': label_df['tapse_1'].median(),
                                 'ef_1': label_df['ef_1'].median(),
-                                #'ef_2': label_df['ef_2'].median(),
-                                #'mmp9_t_1': label_df['mmp9_t_1'].median(),
-                                #'tnf_1': label_df['tnf_1'].median()
+                                'ef_2': label_df['ef_2'].median(),
+                                'mmp9_t_1': label_df['mmp9_t_1'].median(),
+                                'tnf_1': label_df['tnf_1'].median()
                                 })
     else:
         return label_df

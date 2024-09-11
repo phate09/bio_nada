@@ -56,7 +56,7 @@ def train(config: dict):
     recall_list_1 = []
     for i, (train_idx, test_idx) in enumerate(
         k_fold.split(master_df, master_df.iloc[:, -1])):  # k-fold
-        model = neural_network.neural_network_3(master_df.shape[1] - 1).to(
+        model = neural_network.soft_ordering_1dcnn(master_df.shape[1] - 1, output_dim=1).to(
             device).double()  # reinitialise model
         optimiser = optim.Adam(model.parameters(), lr=1e-3)
         scheduler = ExponentialLR(optimiser, gamma=0.995)  # should be about 1/20 after 600 epochs

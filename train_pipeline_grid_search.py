@@ -29,16 +29,20 @@ print(f"Start. Using {device}")
 # ray.init(local_mode=True)
 master_df = get_dataframe_processed(label_file="label.csv")
 def train(config: dict):
-    # if config["loss"] == "BCE":
-    #     criterion = nn.BCELoss()
-    # elif config["loss"] == "Focal":
-    criterion = FocalLoss(alpha=config["alpha"], gamma=config["gamma"])
-    # else:
-    #     raise NotImplementedError()
+    if config["loss"] == "BCE":
+        criterion = nn.BCELoss()
+    elif config["loss"] == "Focal":
+        criterion = FocalLoss(alpha=config["alpha"], gamma=config["gamma"])
+    else:
+        raise NotImplementedError()
 
     k_fold = StratifiedKFold(n_splits=2, shuffle=True)
-    # rus = RandomUnderSampler(random_state=0, replacement=False)
-    rus = RandomOverSampler(random_state=0)
+    if config["sampler"] == "RUS":
+        rus = RandomUnderSampler(random_state=0, replacement=False)
+    elif config["sampler"] == "ROS":
+        rus = RandomOverSampler(random_state=0)
+    else:
+        rus = None
 
     print("Preparing dataframe")
     # Remember: last column is the label
@@ -62,7 +66,7 @@ def train(config: dict):
         scheduler = ExponentialLR(optimiser, gamma=0.995)  # should be about 1/20 after 600 epochs
         train_groups = master_df.loc[train_idx]
         test_groups = master_df.loc[test_idx]
-        if config["sampler"] == "RUS":
+        if rus is not None:
             X_resampled, y_resampled = rus.fit_resample(train_groups,
                                                         train_groups.iloc[:, -1].values)
         else:
@@ -138,9 +142,10 @@ def train(config: dict):
 if __name__ == '__main__':
     # ray.init(local_mode=True)
     search_space = {
-        "sampler": "None",
-        "alpha": tune.grid_search([0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]),
-        "gamma": tune.grid_search([0,0.1,0.2,0.5,1,2,5]),
+        "loss": tune.grid_search(["Focal","BCE"]),
+        "sampler": tune.grid_search(["None","RUS","ROS"]),
+        "alpha": tune.grid_search([0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]),
+        "gamma": tune.grid_search([0.2,0.5,1,2,5]),
     }
 
     tuner = tune.Tuner(train, param_space=search_space)

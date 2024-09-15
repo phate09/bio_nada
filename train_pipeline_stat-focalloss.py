@@ -6,6 +6,7 @@ from sklearn.model_selection import StratifiedKFold
 from torch import nn, optim
 
 import neural_network
+import train_methods
 from focal_loss import FocalLoss
 from pre_process import get_dataframe_processed
 from sklearn import metrics
@@ -66,7 +67,7 @@ for alpha in alpha_values:
 
             # Train the model
             for epoch in range(n_epochs):
-                model.train()
+                train_methods.train()
                 train_stats_master_df = train_stats_master_df.sample(frac=1)  # shuffle
                 x_tensor_train = torch.tensor(train_stats_master_df.iloc[:, :-1].values,
                                               dtype=torch.float).to(device)

@@ -27,7 +27,7 @@ class SoftOrdering1DCNN(nn.Module):
         self.batch_norm1 = nn.BatchNorm1d(input_dim)
         self.dropout1 = nn.Dropout(dropout_input)
         dense1 = nn.Linear(input_dim, hidden_size, bias=False)
-        self.dense1 = nn.utils.weight_norm(dense1)
+        self.dense1 = torch.nn.utils.parametrizations.weight_norm(dense1)
 
         # 1st conv layer
         self.batch_norm_c1 = nn.BatchNorm1d(cha_input)
@@ -39,7 +39,7 @@ class SoftOrdering1DCNN(nn.Module):
             padding=2,
             groups=cha_input,
             bias=False)
-        self.conv1 = nn.utils.weight_norm(conv1, dim=None)
+        self.conv1 = torch.nn.utils.parametrizations.weight_norm(conv1, dim=None)
 
         self.ave_po_c1 = nn.AdaptiveAvgPool1d(output_size=sign_size2)
 
@@ -53,7 +53,7 @@ class SoftOrdering1DCNN(nn.Module):
             stride=1,
             padding=1,
             bias=False)
-        self.conv2 = nn.utils.weight_norm(conv2, dim=None)
+        self.conv2 = torch.nn.utils.parametrizations.weight_norm(conv2, dim=None)
 
         # 3rd conv layer
         self.batch_norm_c3 = nn.BatchNorm1d(cha_hidden)
@@ -65,7 +65,7 @@ class SoftOrdering1DCNN(nn.Module):
             stride=1,
             padding=1,
             bias=False)
-        self.conv3 = nn.utils.weight_norm(conv3, dim=None)
+        self.conv3 = torch.nn.utils.parametrizations.weight_norm(conv3, dim=None)
 
         # 4th conv layer
         self.batch_norm_c4 = nn.BatchNorm1d(cha_hidden)
@@ -77,7 +77,7 @@ class SoftOrdering1DCNN(nn.Module):
             padding=2,
             groups=cha_hidden,
             bias=False)
-        self.conv4 = nn.utils.weight_norm(conv4, dim=None)
+        self.conv4 = torch.nn.utils.parametrizations.weight_norm(conv4, dim=None)
 
         self.avg_po_c4 = nn.AvgPool1d(kernel_size=4, stride=2, padding=1)
 
@@ -86,7 +86,7 @@ class SoftOrdering1DCNN(nn.Module):
         self.batch_norm2 = nn.BatchNorm1d(output_size)
         self.dropout2 = nn.Dropout(dropout_output)
         dense2 = nn.Linear(output_size, output_dim, bias=False)
-        self.dense2 = nn.utils.weight_norm(dense2)
+        self.dense2 = torch.nn.utils.parametrizations.weight_norm(dense2)
 
         self.loss = nn.BCEWithLogitsLoss()
 

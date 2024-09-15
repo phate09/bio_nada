@@ -8,6 +8,7 @@ from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 
 import neural_network
+import train_methods
 from focal_loss import FocalLoss
 from pre_process import create_dataloaders, create_tensor_from_df, get_dataframe, \
     grouped_df_to_stats, get_dataframe_processed
@@ -63,7 +64,7 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
     eval_stats_master_df = test_groups
     for epoch in range(n_epochs):
         # ---- training step
-        model.train()
+        train_methods.train()
         train_stats_master_df = train_stats_master_df.sample(frac=1)  # shuffle
         x_tensor_train = torch.tensor(train_stats_master_df.iloc[:, :-1].values,
                                       dtype=torch.float).to(

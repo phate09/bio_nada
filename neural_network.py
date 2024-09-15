@@ -165,14 +165,14 @@ def soft_ordering_1dcnn(input_dim, output_dim=1, sign_size=32, cha_input=16, cha
     model = nn.Sequential(
         nn.BatchNorm1d(input_dim),
         nn.Dropout(dropout_input),
-        nn.utils.weight_norm(nn.Linear(input_dim, hidden_size, bias=False)),
+        torch.nn.utils.parametrizations.weight_norm(nn.Linear(input_dim, hidden_size, bias=False)),
         nn.CELU(),
 
         ReshapeLayer((-1, cha_input, sign_size1)),  # Custom reshape layer for input to conv layers
 
         # 1st conv layer
         nn.BatchNorm1d(cha_input),
-        nn.utils.weight_norm(nn.Conv1d(cha_input, cha_input * K, kernel_size=5, stride=1, padding=2,
+        torch.nn.utils.parametrizations.weight_norm(nn.Conv1d(cha_input, cha_input * K, kernel_size=5, stride=1, padding=2,
                                        groups=cha_input, bias=False)),
         nn.ReLU(),
         nn.AdaptiveAvgPool1d(output_size=sign_size2),
@@ -180,20 +180,20 @@ def soft_ordering_1dcnn(input_dim, output_dim=1, sign_size=32, cha_input=16, cha
         # 2nd conv layer
         nn.BatchNorm1d(cha_input * K),
         nn.Dropout(dropout_hidden),
-        nn.utils.weight_norm(
+        torch.nn.utils.parametrizations.weight_norm(
             nn.Conv1d(cha_input * K, cha_hidden, kernel_size=3, stride=1, padding=1, bias=False)),
         nn.ReLU(),
 
         # 3rd conv layer
         nn.BatchNorm1d(cha_hidden),
         nn.Dropout(dropout_hidden),
-        nn.utils.weight_norm(
+        torch.nn.utils.parametrizations.weight_norm(
             nn.Conv1d(cha_hidden, cha_hidden, kernel_size=3, stride=1, padding=1, bias=False)),
         nn.ReLU(),
 
         # 4th conv layer
         nn.BatchNorm1d(cha_hidden),
-        nn.utils.weight_norm(
+        torch.nn.utils.parametrizations.weight_norm(
             nn.Conv1d(cha_hidden, cha_hidden, kernel_size=5, stride=1, padding=2, groups=cha_hidden,
                       bias=False)),
         nn.ReLU(),
@@ -203,7 +203,7 @@ def soft_ordering_1dcnn(input_dim, output_dim=1, sign_size=32, cha_input=16, cha
 
         nn.BatchNorm1d(output_size),
         nn.Dropout(dropout_output),
-        nn.utils.weight_norm(nn.Linear(output_size, output_dim, bias=False)),
+        torch.nn.utils.parametrizations.weight_norm(nn.Linear(output_size, output_dim, bias=False)),
         nn.Sigmoid()  # Sigmoid for binary classification
     )
 
@@ -220,14 +220,14 @@ def tabnet_sequential(input_dim, output_dim, sign_size=32, cha_input=16, cha_hid
     model = nn.Sequential(
         nn.BatchNorm1d(input_dim),
         nn.Dropout(dropout_input),
-        nn.utils.weight_norm(nn.Linear(input_dim, hidden_size, bias=False)),
+        torch.nn.utils.parametrizations.weight_norm(nn.Linear(input_dim, hidden_size, bias=False)),
         nn.CELU(),
 
         ReshapeLayer((-1, cha_input, sign_size1)),  # Custom reshape layer for input to conv layers
 
         # 1st conv layer
         nn.BatchNorm1d(cha_input),
-        nn.utils.weight_norm(nn.Conv1d(cha_input, cha_input * K, kernel_size=5, stride=1, padding=2,
+        torch.nn.utils.parametrizations.weight_norm(nn.Conv1d(cha_input, cha_input * K, kernel_size=5, stride=1, padding=2,
                                        groups=cha_input, bias=False)),
         nn.ReLU(),
         nn.AdaptiveAvgPool1d(output_size=sign_size2),
@@ -235,20 +235,20 @@ def tabnet_sequential(input_dim, output_dim, sign_size=32, cha_input=16, cha_hid
         # 2nd conv layer
         nn.BatchNorm1d(cha_input * K),
         nn.Dropout(dropout_hidden),
-        nn.utils.weight_norm(
+        torch.nn.utils.parametrizations.weight_norm(
             nn.Conv1d(cha_input * K, cha_hidden, kernel_size=3, stride=1, padding=1, bias=False)),
         nn.ReLU(),
 
         # 3rd conv layer
         nn.BatchNorm1d(cha_hidden),
         nn.Dropout(dropout_hidden),
-        nn.utils.weight_norm(
+        torch.nn.utils.parametrizations.weight_norm(
             nn.Conv1d(cha_hidden, cha_hidden, kernel_size=3, stride=1, padding=1, bias=False)),
         nn.ReLU(),
 
         # 4th conv layer
         nn.BatchNorm1d(cha_hidden),
-        nn.utils.weight_norm(
+        torch.nn.utils.parametrizations.weight_norm(
             nn.Conv1d(cha_hidden, cha_hidden, kernel_size=5, stride=1, padding=2, groups=cha_hidden,
                       bias=False)),
         nn.ReLU(),
@@ -258,7 +258,7 @@ def tabnet_sequential(input_dim, output_dim, sign_size=32, cha_input=16, cha_hid
 
         nn.BatchNorm1d(output_size),
         nn.Dropout(dropout_output),
-        nn.utils.weight_norm(nn.Linear(output_size, output_dim, bias=False)),
+        torch.nn.utils.parametrizations.weight_norm(nn.Linear(output_size, output_dim, bias=False)),
         nn.Sigmoid()  # Sigmoid for binary classification
     )
 

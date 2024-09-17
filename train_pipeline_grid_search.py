@@ -23,20 +23,20 @@ if __name__ == '__main__':
                        "recall_0", "recall_1"]
     run_config = RunConfig(verbose=0)
 
-    # search_space = {
-    #     "loss": "Focal",
-    #     "seeds": [0, 1, 2, 3, 4],
-    #     "sampler": tune.grid_search(["None", "RUS", "ROS"]),
-    #     "alpha": tune.grid_search([0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]),
-    #     "gamma": tune.grid_search([0.2, 0.5, 1, 2, 5]),
-    # }
-    # tuner = tune.Tuner(train_partial, param_space=search_space, run_config=run_config)
-    # results = tuner.fit()
-    # r1 = results.get_best_result(metric="f1_score_1", mode="max")
-    # print(f'OPTIMAL PARAMETERS for Focal Loss:{r1.config}')
-    # pprint(r1.metrics_dataframe[metrics_columns].iloc[0])
-    # filter_df_columns = ['config/' + x for x in list(search_space.keys())] + metrics_columns
-    # print(results.get_dataframe()[filter_df_columns])
+    search_space = {
+        "loss": "Focal",
+        "seeds": [0, 1, 2, 3, 4],
+        "sampler": tune.grid_search(["None", "RUS", "ROS"]),
+        "alpha": tune.grid_search([0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]),
+        "gamma": tune.grid_search([0.2, 0.5, 1, 2, 5]),
+    }
+    tuner = tune.Tuner(train_partial, param_space=search_space, run_config=run_config)
+    results = tuner.fit()
+    r1 = results.get_best_result(metric="f1_score_1", mode="max")
+    print(f'OPTIMAL PARAMETERS for Focal Loss:{r1.config}')
+    pprint(r1.metrics_dataframe[metrics_columns].iloc[0])
+    filter_df_columns = ['config/' + x for x in list(search_space.keys())] + metrics_columns
+    print(results.get_dataframe()[filter_df_columns])
 
 
 

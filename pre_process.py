@@ -32,37 +32,34 @@ def get_dataframe(data_folder: str = "data", label_file: str = "label.csv") -> p
 
 
 def impute_nan(label_df: pd.DataFrame) -> pd.DataFrame:
-    if 'age' in label_df.columns:
-        fill_dict = {'age': label_df['age'].median(),
-                     'sex': 0,
-                     'trop': label_df['trop'].median(),
-                     'ck': label_df['ck'].median(),
-                     'egfr': label_df['egfr'].median(),
-                     'chol': label_df['chol'].median(),
-                     'bmi': label_df['bmi'].median(),
-                     'wcc': label_df['wcc'].median(),
-                     'htn': 0,
-                     'dm': 0,
-                     'mi': 0,
-                     'pci': 0,
-                     'cabg': 0,
-                     'cva': 0,
-                     'copd': 0,
-                     'smoke': 0,
-                     'tapse_1': label_df['tapse_1'].median(),
-                     'ef_1': label_df['ef_1'].median(),
-                     'ef_2': label_df['ef_2'].median(),
-                     'mmp9_t_1': label_df['mmp9_t_1'].median(),
-                     'tnf_1': label_df['tnf_1'].median()
-                     }
-        # Step 1: Identify existing columns in both the DataFrame and the dictionary
-        existing_cols = label_df.columns.intersection(fill_dict.keys())
-        # Step 2: Create a sub-dictionary with existing columns and their fill values
-        existing_fill_dict = {col: fill_dict[col] for col in existing_cols}
-        # Step 3: Fill NaN values in the DataFrame using the sub-dictionary
-        return label_df.fillna(value=existing_fill_dict)
-    else:
-        return label_df
+    fill_dict = {'age': label_df['age'].median(),
+                 'sex': 0,
+                 'trop': label_df['trop'].median(),
+                 'ck': label_df['ck'].median(),
+                 'egfr': label_df['egfr'].median(),
+                 'chol': label_df['chol'].median(),
+                 'bmi': label_df['bmi'].median(),
+                 'wcc': label_df['wcc'].median(),
+                 'htn': 0,
+                 'dm': 0,
+                 'mi': 0,
+                 'pci': 0,
+                 'cabg': 0,
+                 'cva': 0,
+                 'copd': 0,
+                 'smoke': 0,
+                 'tapse_1': label_df['tapse_1'].median(),
+                 'ef_1': label_df['ef_1'].median(),
+                 'ef_2': label_df['ef_2'].median(),
+                 'mmp9_t_1': label_df['mmp9_t_1'].median(),
+                 'tnf_1': label_df['tnf_1'].median()
+                 }
+    # Step 1: Identify existing columns in both the DataFrame and the dictionary
+    existing_cols = label_df.columns.intersection(fill_dict.keys())
+    # Step 2: Create a sub-dictionary with existing columns and their fill values
+    existing_fill_dict = {col: fill_dict[col] for col in existing_cols}
+    # Step 3: Fill NaN values in the DataFrame using the sub-dictionary
+    return label_df.fillna(value=existing_fill_dict)
 
 
 def get_dataframe_processed(data_folder: str = "data",

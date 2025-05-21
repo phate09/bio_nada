@@ -30,15 +30,15 @@ def neural_network_2():
     return model
 
 
-def neural_network_3(input_size):
+def neural_network_3(input_size,output_size):
     model = nn.Sequential(nn.Linear(input_size, 128),
                           nn.ReLU(),
                           nn.Linear(128, 64),
                           nn.ReLU(),
                           nn.Linear(64, 64),
                           nn.ReLU(),
-                          nn.Linear(64, 1),  # just 1 output because of 2 classes
-                          nn.Sigmoid()  # just sigmoid instead of softmax
+                          nn.Linear(64, output_size),
+                          nn.Softmax()  # just sigmoid instead of softmax
                           )
     return model
 

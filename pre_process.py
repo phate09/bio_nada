@@ -31,6 +31,21 @@ def get_dataframe(data_folder: str = "data", label_file: str = "label.csv") -> p
     return master_df
 
 
+def preprocess_cell_label(master_df: pd.DataFrame, label_column: str = "cell_label", ):
+    # Function to extract decimal as int if condition is met
+    def extract_decimal(label):
+        try:
+            num = float(label)
+            if int(num) == 1:
+                return int(str(label).split('.')[1])
+        except:
+            pass
+        return 0
+    master_df["cell_label2"] = master_df['cell_label'].apply(extract_decimal)
+    master_df["cell_label"] = master_df["cell_label"].apply(int)
+    return master_df
+
+
 def impute_nan(label_df: pd.DataFrame) -> pd.DataFrame:
     fill_dict = {'age': label_df['age'].median(),
                  'sex': 0,
@@ -173,12 +188,12 @@ def create_tensor_from_df(train_set_df: pd.DataFrame, test_set_df: pd.DataFrame)
     """Creates te tensors for train and test set starting from the dataframe
     :return x_tensor_train, y_tensor_train, x_tensor_test, y_tensor_test
     """
-    x_tensor_train = torch.tensor(train_set_df.iloc[:, :-2].values,
-                                  dtype=torch.float)  # exclude last two columns
+    x_tensor_train = torch.tensor(train_set_df.iloc[:, :-1].values,
+                                  dtype=torch.float)  # exclude last column
     y_tensor_train = torch.tensor(train_set_df.iloc[:, -1].values, dtype=torch.float).reshape(-1, 1)
     assert x_tensor_train.shape[0] == y_tensor_train.shape[0]
-    x_tensor_test = torch.tensor(test_set_df.iloc[:, :-2].values,
-                                 dtype=torch.float)  # exclude last two columns
+    x_tensor_test = torch.tensor(test_set_df.iloc[:, :-1].values,
+                                 dtype=torch.float)  # exclude last column
     y_tensor_test = torch.tensor(test_set_df.iloc[:, -1].values, dtype=torch.float).reshape(-1, 1)
     assert x_tensor_test.shape[0] == y_tensor_test.shape[0]
     return x_tensor_train, y_tensor_train, x_tensor_test, y_tensor_test

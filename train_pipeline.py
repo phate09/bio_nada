@@ -35,7 +35,7 @@ print("Preparing dataframe")
 master_df = get_dataframe()
 master_df = preprocess_cell_label(master_df)
 # Discard unused columns
-master_df.drop(['cell_label2', "Label", "id_random"], axis=1,
+master_df.drop(['cell_label2', "Label", "id_random", "FL2-A", "CD42a-PerCP", "CCR2-APC"], axis=1,
                inplace=True)  # only cell_label remains
 print(f"Start. Using {device}")
 n_features = len([col for col in master_df.columns if
@@ -125,7 +125,7 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
         accuracy = accuracy_score(all_labels, all_preds)
         print(f"TRAINING: accuracy={accuracy:.3f}, f1_score={f1:.3f}, "
               f"precision={precision:.3f}, recall={recall:.3f}")
-        # print(classification_report(all_labels, all_preds, digits=3))
+        print(classification_report(all_labels, all_preds, digits=3))
         # ---- validation step
         model.eval()  # put the model in evaluation mode
         correct = 0
@@ -158,7 +158,7 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
         assert accuracy == correct / n_examples
         print(f"TEST: accuracy={accuracy:.3f}, f1_score={f1:.3f}, "
               f"precision={precision:.3f}, recall={recall:.3f}")
-        # print(classification_report(all_labels, all_preds, digits=3))
+        print(classification_report(all_labels, all_preds, digits=3))
         print(f"Fold {i + 1} Epoch {epoch + 1} Train Loss {train_loss} Eval Loss {eval_loss}")
     accuracy_list.append(accuracy)
     f1_score_list.append(f1_score)

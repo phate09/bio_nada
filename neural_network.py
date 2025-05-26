@@ -38,9 +38,9 @@ def neural_network_3(input_size,output_size):
                           nn.Linear(64, 64),
                           nn.ReLU(),
                           nn.Linear(64, output_size),
-                          nn.Softmax()  # just sigmoid instead of softmax
+                          nn.Softmax(dim=1)  # just sigmoid instead of softmax
                           )
-    return model
+    return model.double()
 
 
 def neural_network_4(input_size):

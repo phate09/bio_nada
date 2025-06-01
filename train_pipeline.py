@@ -6,27 +6,27 @@ The only values allowed are 0, 1 and 2 in the cell label column.
 """
 import random
 
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import torch
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, \
+    f1_score, accuracy_score, classification_report
 from sklearn.model_selection import StratifiedKFold
 from torch import nn, optim
 from torch.optim.lr_scheduler import ExponentialLR
+from torch.utils.data import TensorDataset, DataLoader
 
-from neural_network import get_simple_model, neural_network_2, neural_network_3
-from pre_process import create_dataloaders, create_tensor_from_df, get_dataframe, \
+from neural_network import neural_network_3
+from pre_process import get_dataframe, \
     preprocess_cell_label
-import progressbar
-import pandas as pd
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, precision_score, recall_score, \
-    f1_score, accuracy_score,classification_report
-import matplotlib.pyplot as plt
-
+from tqdm import tqdm
 
 (pd.set_option('display.expand_frame_repr', False))
 seed = 0
-config = {"sampler": "ROS",}
+config = {"sampler": "ROS", }
 torch.manual_seed(seed)
 np.random.seed(seed)
 random.seed(seed)
@@ -65,26 +65,29 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
     train_stats_master_df = X_resampled
     eval_stats_master_df = test_groups
     n_epochs = 200
+    batch_size = 2 ** 14
     # ---- Initialise model and optimiser and scheduler
     model = neural_network_3(n_features, output_dim).to(device)
     criterion = nn.CrossEntropyLoss()
     optimiser = optim.Adam(model.parameters(), lr=1e-3)
     scheduler = ExponentialLR(optimiser,
                               gamma=0.99)  # should be about 1/20 after 300 epochs
-    model.train()
+
     train_stats_master_df = train_stats_master_df.sample(frac=1)  # shuffle
-    x_tensor_train = torch.tensor(train_stats_master_df.iloc[:, :-1].values,
-                                  dtype=torch.float).to(
-        device).double()  # exclude last column
-    y_tensor_train = torch.tensor(train_stats_master_df.iloc[:, -1].values,
-                                  dtype=torch.float).to(
-        device).long()
-    x_tensor_eval = torch.tensor(eval_stats_master_df.iloc[:, :-1].values,
-                                 dtype=torch.float).to(
-        device).double()  # exclude last column
-    y_tensor_eval = torch.tensor(eval_stats_master_df.iloc[:, -1].values,
-                                 dtype=torch.float).to(
-        device).long()
+    x_tensor_train_total = torch.tensor(train_stats_master_df.iloc[:, :-1].values,
+                                        dtype=torch.float)  # exclude last column
+    y_tensor_train_total = torch.tensor(train_stats_master_df.iloc[:, -1].values,
+                                        dtype=torch.float)
+    x_tensor_eval_total = torch.tensor(eval_stats_master_df.iloc[:, :-1].values,
+                                       dtype=torch.float)  # exclude last column
+    y_tensor_eval_total = torch.tensor(eval_stats_master_df.iloc[:, -1].values,
+                                       dtype=torch.float)
+    # DataLoaders
+    train_loader = DataLoader(TensorDataset(x_tensor_train_total, y_tensor_train_total),
+                              batch_size=batch_size,
+                              shuffle=True)
+    eval_loader = DataLoader(TensorDataset(x_tensor_eval_total, y_tensor_eval_total),
+                             batch_size=batch_size, shuffle=False)
 
     train_losses = []
     eval_losses = []
@@ -93,33 +96,39 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
         # ---- training step
         correct = 0
         n_examples = 0
+        epoch_train_loss = 0.0
+        num_train_batches = 0
         all_preds = []
         all_labels = []
-
-        # Forward pass
         model.train()
-        logits = model(x_tensor_train)
-        loss = criterion(logits, y_tensor_train)
-        train_loss = loss.item()
-        train_losses.append(train_loss)
-        # Calculate metrics
-        n_examples += y_tensor_train.size(0)  # size of the batch
-        y_pred = logits.argmax(dim=1)
-        all_preds.extend(y_pred.cpu().numpy())
-        all_labels.extend(y_tensor_train.cpu().numpy())
-        correct += (y_pred.round() == y_tensor_train).sum().item()  # number of correct items
-        # Backward pass and optimization
-        optimiser.zero_grad()
-        loss.backward()
-        optimiser.step()
 
+        for X_batch, y_batch in tqdm(train_loader, desc=f"Training Epoch {epoch + 1}"):
+            # Load batch on GPU
+            x_tensor_train = X_batch.to(device)
+            y_tensor_train = y_batch.to(device).long()
+            # Forward pass
+            logits = model(x_tensor_train)
+            loss = criterion(logits, y_tensor_train)
+            train_loss = loss.item()
+            epoch_train_loss += train_loss
+            num_train_batches += 1
+            # Calculate metrics
+            n_examples += y_tensor_train.size(0)  # size of the batch
+            y_pred = logits.argmax(dim=1)
+            all_preds.extend(y_pred.cpu().numpy())
+            all_labels.extend(y_tensor_train.cpu().numpy())
+            correct += (y_pred.round() == y_tensor_train).sum().item()  # number of correct items
+            # Backward pass and optimization
+            optimiser.zero_grad()
+            loss.backward()
+            optimiser.step()
+        # After training, log metrics
+        train_losses.append(epoch_train_loss / num_train_batches)
         labels_set = sorted(set(all_labels))
         cm = confusion_matrix(all_labels, all_preds, labels=labels_set)
         cm_df = pd.DataFrame(cm, index=labels_set, columns=labels_set)
         print(cm_df)
-        # disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels_set)
-        # disp.plot()
-        precision = precision_score(all_labels, all_preds, average='macro')
+        precision = precision_score(all_labels, all_preds, average='macro',zero_division=0)
         recall = recall_score(all_labels, all_preds, average='macro')
         f1 = f1_score(all_labels, all_preds, average='macro')
         accuracy = accuracy_score(all_labels, all_preds)
@@ -127,41 +136,46 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
               f"precision={precision:.3f}, recall={recall:.3f}")
         print(classification_report(all_labels, all_preds, digits=3))
         # ---- validation step
-        model.eval()  # put the model in evaluation mode
-        correct = 0
-        n_examples = 0
-        all_preds = []
-        all_labels = []
-
-        # Forward pass
-        logits = model(x_tensor_eval)
-        loss = criterion(logits, y_tensor_eval)
-        y_pred = logits.argmax(dim=1)
-        eval_loss = loss.item()
-        eval_losses.append(eval_loss)
-        # Calculate training accuracy
-        n_examples += y_tensor_eval.size(0)  # size of the batch
-        correct += (y_pred.round() == y_tensor_eval).sum().item()  # number of correct items
-        all_preds.extend(y_pred.cpu().numpy())
-        all_labels.extend(y_tensor_eval.cpu().numpy())
-
-        labels_set = sorted(set(all_labels))
-        cm = confusion_matrix(all_labels, all_preds, labels=labels_set)
-        cm_df = pd.DataFrame(cm, index=labels_set, columns=labels_set)
-        print(cm_df)
-        # disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels_set)
-        # disp.plot()
-        precision = precision_score(all_labels, all_preds, average='macro')
-        recall = recall_score(all_labels, all_preds, average='macro')
-        f1 = f1_score(all_labels, all_preds, average='macro')
-        accuracy = accuracy_score(all_labels, all_preds)
-        assert accuracy == correct / n_examples
-        print(f"TEST: accuracy={accuracy:.3f}, f1_score={f1:.3f}, "
-              f"precision={precision:.3f}, recall={recall:.3f}")
-        print(classification_report(all_labels, all_preds, digits=3))
-        print(f"Fold {i + 1} Epoch {epoch + 1} Train Loss {train_loss} Eval Loss {eval_loss}")
+        with torch.no_grad():
+            model.eval()  # put the model in evaluation mode
+            correct = 0
+            n_examples = 0
+            epoch_eval_loss = 0.0
+            num_eval_batches = 0
+            all_preds = []
+            all_labels = []
+            for X_val, y_val in tqdm(eval_loader, desc=f"Evaluating Epoch {epoch + 1}"):
+                x_tensor_eval = X_val.to(device)
+                y_tensor_eval = y_val.to(device).long()
+                # Forward pass
+                logits = model(x_tensor_eval)
+                loss = criterion(logits, y_tensor_eval)
+                y_pred = logits.argmax(dim=1)
+                eval_loss = loss.item()
+                epoch_eval_loss += eval_loss
+                num_eval_batches += 1
+                # Calculate training accuracy
+                n_examples += y_tensor_eval.size(0)  # size of the batch
+                correct += (y_pred.round() == y_tensor_eval).sum().item()  # number of correct items
+                all_preds.extend(y_pred.cpu().numpy())
+                all_labels.extend(y_tensor_eval.cpu().numpy())
+            # After Validation, log metrics
+            eval_losses.append(epoch_eval_loss / num_eval_batches)
+            labels_set = sorted(set(all_labels))
+            cm = confusion_matrix(all_labels, all_preds, labels=labels_set)
+            cm_df = pd.DataFrame(cm, index=labels_set, columns=labels_set)
+            print(cm_df)
+            precision = precision_score(all_labels, all_preds, average='macro',zero_division=0)
+            recall = recall_score(all_labels, all_preds, average='macro')
+            f1 = f1_score(all_labels, all_preds, average='macro')
+            accuracy = accuracy_score(all_labels, all_preds)
+            assert accuracy == correct / n_examples
+            print(f"TEST: accuracy={accuracy:.3f}, f1_score={f1:.3f}, "
+                  f"precision={precision:.3f}, recall={recall:.3f}")
+            print(classification_report(all_labels, all_preds, digits=3))
+            print(f"Fold {i + 1} Epoch {epoch + 1} Train Loss {train_loss} Eval Loss {eval_loss}")
     accuracy_list.append(accuracy)
-    f1_score_list.append(f1_score)
+    f1_score_list.append(f1)
     precision_list.append(precision)
     recall_list.append(recall)
     plt.figure(figsize=(10, 6))
@@ -174,7 +188,7 @@ for i, (train_idx, test_idx) in enumerate(k_fold.split(master_df, master_df.iloc
     plt.savefig(f"train_loss_{i}.png")
     # plt.show()
     plt.close()
-    torch.save(model.state_dict(),f"model_weights_{i}.pth")
+    torch.save(model.state_dict(), f"model_weights_{i}.pth")
 mean_accuracy = np.mean(accuracy_list)
 mean_f1 = np.mean(f1_score_list)
 mean_precision = np.mean(precision_list)

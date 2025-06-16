@@ -32,7 +32,7 @@ def get_dataframe(data_folder: str = "data", label_file: str = "label.csv") -> p
 
 
 def preprocess_cell_label(master_df: pd.DataFrame, label_column: str = "cell_label", ):
-    # Function to extract decimal as int if condition is met
+    # Takes the column 'cell_label' and extracts the decimal part of the label.
     def extract_decimal(label):
         try:
             num = float(label)
@@ -41,7 +41,10 @@ def preprocess_cell_label(master_df: pd.DataFrame, label_column: str = "cell_lab
         except:
             pass
         return 0
+
     master_df["cell_label2"] = master_df['cell_label'].apply(extract_decimal)
+    master_df["cell_label2"] = master_df["cell_label2"] - 1  # ensure numbers start at 0 and others are -1
+
     master_df["cell_label"] = master_df["cell_label"].apply(int)
     return master_df
 

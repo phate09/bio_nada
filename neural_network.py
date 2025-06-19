@@ -38,8 +38,9 @@ def neural_network_3(input_size,output_size):
                           nn.Linear(64, 64),
                           nn.ReLU(),
                           nn.Linear(64, output_size),
-                          nn.Softmax(dim=1)  # just sigmoid instead of softmax
+                          # nn.Softmax(dim=1)  # just sigmoid instead of softmax
                           )
+    # don't use softmax because we want to use cross entropy loss (need logits)
     return model
 
 

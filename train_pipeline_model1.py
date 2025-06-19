@@ -16,14 +16,14 @@ from pathlib import Path
 if __name__ == '__main__':
     (pd.set_option('display.expand_frame_repr', False))
     config = {"sampler": "None",  # ROS or RUS or None. If None, no sampling is used.
-              "loss": "CE", # CE or Focal
+              "loss": "CE",  # CE or Focal
               "n_splits": 2,
-              "lr": 1e-3, # initial learning rate
-              "lr_decay_factor": 0.99,
+              "lr": 1e-3,  # initial learning rate
+              "lr_decay_factor": 0.9,
               "batch_size": 2 ** 14,
-              "epochs": 50,
-              "alpha": 0.5, # for focal loss
-              "gamma": 2, # for focal loss
+              "epochs": 20,
+              "alpha": [1.0, 1.0, 1.0],  # for focal loss, need 1 value per class
+              "gamma": 2,  # for focal loss
               "seed": 0,
               "label_column": "cell_label",  # which column to use to predict the result.
               "kfold_group_column": "id_random",

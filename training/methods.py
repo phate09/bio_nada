@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 import logging
 
-from focal_loss import FocalLoss
+from focal_loss import FocalLoss, FocalLossMulti
 from neural_network import neural_network_3
 
 
@@ -87,7 +87,7 @@ def train_cell_model(config: dict, master_df: pd.DataFrame):
     if config["loss"] == "CE":
         criterion = nn.CrossEntropyLoss()
     elif config["loss"] == "Focal":
-        criterion = FocalLoss(alpha=config["alpha"], gamma=config["gamma"])
+        criterion = FocalLossMulti(alpha=config["alpha"], gamma=config["gamma"])
     else:
         raise NotImplementedError()
 

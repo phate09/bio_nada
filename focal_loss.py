@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np
 
+
 class FocalLoss(nn.Module):
     def __init__(self, alpha=0.8, gamma=2):
         super(FocalLoss, self).__init__()
@@ -18,6 +19,37 @@ class FocalLoss(nn.Module):
         if self.alpha >= 0:
             alpha_t = self.alpha * targets + (1 - self.alpha) * (1 - targets)
             loss = alpha_t * loss
+        return torch.mean(loss)
+
+
+class FocalLossMulti(nn.Module):
+    def __init__(self, alpha=0.8, gamma=2):
+        super(FocalLossMulti, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+
+    def forward(self, inputs, targets):
+        """
+           Compute the Focal Loss between `inputs` and `targets`.
+
+           - inputs: raw, unnormalised scores for each of C classes.
+           - targets: integer class labels in [0, C-1].
+           - γ down-weights easy examples: higher γ → more focus on hard ones.
+           - α balances class frequencies (can be a scalar or per-class Tensor).
+           """
+        # 1. Standard Cross-Entropy per sample (no reduction)
+        ce_loss = F.cross_entropy(
+            inputs,  # logits
+            targets,  # true labels
+            weight=torch.tensor(self.alpha),  # apply class weights if provided
+            reduction="none"  # keep individual losses
+        )
+        # 2. Compute model’s estimated probability for the true class: p_t = exp(−CE)
+        pt = torch.exp(-ce_loss)
+        # 3. Focal term: down-weight well-classified examples (pt close to 1)
+        focal_term = (1.0 - pt) ** self.gamma
+        # 4. Combine to get the per-sample focal loss
+        loss = focal_term * ce_loss
         return torch.mean(loss)
 #
 # def sigmoid_focal_loss(
@@ -59,4 +91,3 @@ class FocalLoss(nn.Module):
 #         loss = alpha_t * loss
 #
 #     return loss
-

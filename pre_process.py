@@ -43,7 +43,8 @@ def preprocess_cell_label(master_df: pd.DataFrame, label_column: str = "cell_lab
         return 0
 
     master_df["cell_label2"] = master_df['cell_label'].apply(extract_decimal)
-    master_df["cell_label2"] = master_df["cell_label2"] - 1  # ensure numbers start at 0 and others are -1
+    master_df["cell_label2"] = master_df[
+                                   "cell_label2"] - 1  # ensure numbers start at 0 and others are -1
 
     master_df["cell_label"] = master_df["cell_label"].apply(int)
     return master_df
@@ -83,6 +84,9 @@ def impute_nan(label_df: pd.DataFrame) -> pd.DataFrame:
 def get_dataframe_processed(data_folder: str = "data",
                             label_file: str = "label.csv",
                             label_column: str = "Label") -> pd.DataFrame:
+    """Generates statistics for each cell and appends the label to the dataframe.
+    Returns a dataframe with statistics and label."""
+
     preprocessed_file = Path(".preprocessed.csv")
     if not preprocessed_file.is_file():
         # ---- merge all data csv in dataframe
@@ -110,6 +114,110 @@ def get_dataframe_processed(data_folder: str = "data",
                 [*quantile_list, train_data_df.mean(), train_data_df.std(),
                  train_data_df.kurtosis(),
                  train_data_df.skew(), cv, range_value, iqr, train_data_df.corr()], axis=1)
+            id_random = int(filee.removesuffix(".csv"))
+            y_row = label_df[label_df["id_random"] == id_random].iloc[0, :]
+            y_label = y_row[label_column]
+            y_data = y_row[(y_row.index != label_column) & (y_row.index != "id_random")]
+            pre_tensor.append(np.concatenate([statistics_df.values.flatten(), y_data.values]))
+            pre_y_tensor.append(y_label)
+        master_train_data_df = pd.DataFrame(pre_tensor)
+        master_y_data_df = pd.DataFrame(pre_y_tensor)
+        master_df = pd.concat([master_train_data_df, master_y_data_df], axis=1)  # append lbl at end
+        master_df.to_csv(preprocessed_file, header=False, index=False)
+    else:
+        master_df = pd.read_csv(preprocessed_file, index_col=False, header=None)
+    return master_df
+
+
+def get_dataframe_processed_with_cell2(data_folder: str = "data",
+                                       label_file: str = "label.csv",
+                                       label_column: str = "Label") -> pd.DataFrame:
+    """Generates statistics for each cell and appends the label to the dataframe.
+    It also uses model1 and model 2 to generate cell2 label and create some statistics to use.
+    Returns a dataframe with statistics and label."""
+
+    preprocessed_file = Path(".preprocessed_cell2.csv")
+    if not preprocessed_file.is_file():
+        # ---- merge all data csv in dataframe
+        pre_tensor = []
+        pre_y_tensor = []
+        label_df_original = pd.read_csv(label_file)
+        # fill blanks in label_df
+        label_df = impute_nan(label_df_original)
+        for filee in progressbar.progressbar(os.listdir(
+            data_folder),
+            prefix="Preprocessing files"):  # Loop through CSV files in the dynamically specified directory
+            if filee.startswith(".") or not filee.endswith(".csv"):
+                continue
+            df = pd.read_csv(os.path.join(data_folder, filee))  # Read the CSV data into a DataFrame
+            quantiles = 20
+            quantile_list = []
+            train_data_df = df
+
+            for i in range(1, quantiles):
+                quantile_list.append(train_data_df.quantile(i / quantiles))
+            cv = train_data_df.std() / train_data_df.mean()
+            range_value = train_data_df.max() - train_data_df.min()
+            iqr = train_data_df.quantile(0.75) - train_data_df.quantile(0.25)
+            statistics_df = pd.concat(
+                [*quantile_list, train_data_df.mean(), train_data_df.std(),
+                 train_data_df.kurtosis(),
+                 train_data_df.skew(), cv, range_value, iqr, train_data_df.corr()], axis=1)
+            id_random = int(filee.removesuffix(".csv"))
+            y_row = label_df[label_df["id_random"] == id_random].iloc[0, :]
+            y_label = y_row[label_column]
+            y_data = y_row[(y_row.index != label_column) & (y_row.index != "id_random")]
+            pre_tensor.append(np.concatenate([statistics_df.values.flatten(), y_data.values]))
+            pre_y_tensor.append(y_label)
+        master_train_data_df = pd.DataFrame(pre_tensor)
+        master_y_data_df = pd.DataFrame(pre_y_tensor)
+        master_df = pd.concat([master_train_data_df, master_y_data_df], axis=1)  # append lbl at end
+        master_df.to_csv(preprocessed_file, header=False, index=False)
+    else:
+        master_df = pd.read_csv(preprocessed_file, index_col=False, header=None)
+    return master_df
+
+
+def get_dataframe_processed_with_fake_cell2(data_folder: str = "data",
+                                            label_file: str = "label.csv",
+                                            label_column: str = "Label") -> pd.DataFrame:
+    """Generates statistics for each cell and appends the label to the dataframe.
+    It uses fake data to fill in data for cell 2 and create statistics to use.
+    Returns a dataframe with statistics and label."""
+
+    preprocessed_file = Path(".preprocessed_cell2_fake.csv")
+    if not preprocessed_file.is_file():
+        # ---- merge all data csv in dataframe
+        pre_tensor = []
+        pre_y_tensor = []
+        label_df_original = pd.read_csv(label_file)
+        # fill blanks in label_df
+        label_df = impute_nan(label_df_original)
+        for filee in progressbar.progressbar(os.listdir(
+            data_folder),
+            prefix="Preprocessing files"):  # Loop through CSV files in the dynamically specified directory
+            if filee.startswith(".") or not filee.endswith(".csv"):
+                continue
+            df = pd.read_csv(os.path.join(data_folder, filee))  # Read the CSV data into a DataFrame
+            df = preprocess_cell_label(df)  # preprocess the label of the cell on the fake column
+            quantiles = 20
+            quantile_list = []
+            train_data_df = df
+
+            for i in range(1, quantiles):
+                quantile_list.append(train_data_df.quantile(i / quantiles))
+            cv = train_data_df.std() / train_data_df.mean()
+            range_value = train_data_df.max() - train_data_df.min()
+            iqr = train_data_df.quantile(0.75) - train_data_df.quantile(0.25)
+            value_count_cell1 = train_data_df["cell_label"].value_counts()
+            value_count_cell2 = train_data_df["cell_label2"].value_counts()
+            value_count_cell2 = value_count_cell2.loc[value_count_cell2.index >= 0]
+            flat_correlation = pd.Series(train_data_df.corr().to_numpy().ravel())
+            statistics_df = pd.concat(
+                [*quantile_list, train_data_df.mean(), train_data_df.std(),
+                 train_data_df.kurtosis(),
+                 train_data_df.skew(), cv, range_value, iqr, flat_correlation,
+                 value_count_cell1, value_count_cell2], axis=0)
             id_random = int(filee.removesuffix(".csv"))
             y_row = label_df[label_df["id_random"] == id_random].iloc[0, :]
             y_label = y_row[label_column]

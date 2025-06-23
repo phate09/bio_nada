@@ -31,76 +31,80 @@ def train(config: dict, master_df: pd.DataFrame, device):
     assert config["seeds"]
     seeds = config["seeds"]
     for seed in seeds:
-        torch.manual_seed(seed)
-        torch.cuda.manual_seed(seed)
-        np.random.seed(seed)
-        random.seed(seed)
-        # ray.train.torch.enable_reproducibility(seed=seed)
-        if config["loss"] == "BCE":
-            criterion = nn.BCELoss()
-        elif config["loss"] == "Focal":
-            criterion = FocalLoss(alpha=config["alpha"], gamma=config["gamma"])
-        else:
-            raise NotImplementedError()
-
-        k_fold = StratifiedKFold(n_splits=2, shuffle=True,random_state=seed)
-        if config["sampler"] == "RUS":
-            rus = RandomUnderSampler(random_state=seed, replacement=False)
-        elif config["sampler"] == "ROS":
-            rus = RandomOverSampler(random_state=seed)
-        else:
-            rus = None
-
-        for i, (train_idx, test_idx) in enumerate(
-            k_fold.split(master_df, master_df.iloc[:, -1])):  # k-fold
-            model = neural_network.soft_ordering_1dcnn_2(master_df.shape[1] - 1).to(
-                device).double()  # reinitialise model
-            optimiser = optim.Adam(model.parameters(), lr=1e-3)
-            scheduler = ExponentialLR(optimiser,
-                                      gamma=0.995)  # should be about 1/20 after 600 epochs
-            train_groups = master_df.loc[train_idx]
-            test_groups = master_df.loc[test_idx]
-            if rus is not None:
-                X_resampled, y_resampled = rus.fit_resample(train_groups,
-                                                            train_groups.iloc[:, -1].values)
+        try:
+            torch.manual_seed(seed)
+            torch.cuda.manual_seed(seed)
+            np.random.seed(seed)
+            random.seed(seed)
+            # ray.train.torch.enable_reproducibility(seed=seed)
+            if config["loss"] == "BCE":
+                criterion = nn.BCELoss()
+            elif config["loss"] == "Focal":
+                criterion = FocalLoss(alpha=config["alpha"], gamma=config["gamma"])
             else:
-                X_resampled = train_groups
-            n_epochs = 600
-            train_stats_master_df = X_resampled
-            eval_stats_master_df = test_groups
-            for epoch in range(n_epochs):
-                # Training Step
-                print_intermediate_results = (log_intermediate_results and
-                                              (epoch % intermediate_results_interval) == 0)
-                if print_intermediate_results:
-                    print(f"Seed {seed} Fold {i + 1} Epoch {epoch}")  # +1 because i starts from 0
-                    train_step(criterion, device, model, optimiser, scheduler,
-                               train_stats_master_df,
-                               print_report=True)
-                    evaluation_step(device, eval_stats_master_df, model,
-                                    print_report=True)
+                raise NotImplementedError()
+
+            k_fold = StratifiedKFold(n_splits=2, shuffle=True,random_state=seed)
+            if config["sampler"] == "RUS":
+                rus = RandomUnderSampler(random_state=seed, replacement=False)
+            elif config["sampler"] == "ROS":
+                rus = RandomOverSampler(random_state=seed)
+            else:
+                rus = None
+
+            for i, (train_idx, test_idx) in enumerate(
+                k_fold.split(master_df, master_df.iloc[:, -1])):  # k-fold
+                model = neural_network.neural_network_6(master_df.shape[1] - 1).to(
+                    device).double()  # reinitialise model
+                optimiser = optim.Adam(model.parameters(), lr=1e-3)
+                scheduler = ExponentialLR(optimiser,
+                                          gamma=0.995)  # should be about 1/20 after 600 epochs
+                train_groups = master_df.loc[train_idx]
+                test_groups = master_df.loc[test_idx]
+                if rus is not None:
+                    X_resampled, y_resampled = rus.fit_resample(train_groups,
+                                                                train_groups.iloc[:, -1].values)
                 else:
-                    train_step(criterion, device, model, optimiser, scheduler,
-                               train_stats_master_df,
-                               print_report=False)
+                    X_resampled = train_groups
+                n_epochs = 600
+                train_stats_master_df = X_resampled
+                eval_stats_master_df = test_groups
+                for epoch in range(n_epochs):
+                    # Training Step
+                    print_intermediate_results = (log_intermediate_results and
+                                                  (epoch % intermediate_results_interval) == 0)
+                    if print_intermediate_results:
+                        print(f"Seed {seed} Fold {i + 1} Epoch {epoch}")  # +1 because i starts from 0
+                        train_step(criterion, device, model, optimiser, scheduler,
+                                   train_stats_master_df,
+                                   print_report=True)
+                        evaluation_step(device, eval_stats_master_df, model,
+                                        print_report=True)
+                    else:
+                        train_step(criterion, device, model, optimiser, scheduler,
+                                   train_stats_master_df,
+                                   print_report=False)
 
-            # Final Epoch - Always Print report
-            print(f"Seed {seed} Fold {i + 1} Epoch {n_epochs}")  # n_epochs because last
-            train_step(criterion, device, model, optimiser, scheduler,
-                       train_stats_master_df,
-                       print_report=True)
-            evaluation_results = evaluation_step(device, eval_stats_master_df, model,
-                                                 print_report=True)
-            accuracy, f1_score_0, f1_score_1, prec_0, prec_1, rec_0, rec_1 = evaluation_results
+                # Final Epoch - Always Print report
+                print(f"Seed {seed} Fold {i + 1} Epoch {n_epochs}")  # n_epochs because last
+                train_step(criterion, device, model, optimiser, scheduler,
+                           train_stats_master_df,
+                           print_report=True)
+                evaluation_results = evaluation_step(device, eval_stats_master_df, model,
+                                                     print_report=True)
+                accuracy, f1_score_0, f1_score_1, prec_0, prec_1, rec_0, rec_1 = evaluation_results
 
-            # Log last evaluation
-            accuracy_list.append(accuracy)
-            f1_score_list_0.append(f1_score_0)
-            precision_list_0.append(prec_0)
-            recall_list_0.append(rec_0)
-            f1_score_list_1.append(f1_score_1)
-            precision_list_1.append(prec_1)
-            recall_list_1.append(rec_1)
+                # Log last evaluation
+                accuracy_list.append(accuracy)
+                f1_score_list_0.append(f1_score_0)
+                precision_list_0.append(prec_0)
+                recall_list_0.append(rec_0)
+                f1_score_list_1.append(f1_score_1)
+                precision_list_1.append(prec_1)
+                recall_list_1.append(rec_1)
+        except Exception as e:
+            print(f"Seed {seed} failed with exception {e}")
+            continue
     results = {"accuracy": float(np.mean(accuracy_list)),
                "f1_score_0": float(np.mean(f1_score_list_0)),
                "f1_score_1": float(np.mean(f1_score_list_1)),

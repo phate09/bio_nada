@@ -203,7 +203,7 @@ def get_dataframe_processed_with_fake_cell2(data_folder: str = "data",
             quantiles = 20
             quantile_list = []
             train_data_df = df
-
+            train_data_df = train_data_df[train_data_df["cell_label"] ==1] # filter only cell label 1
             for i in range(1, quantiles):
                 quantile_list.append(train_data_df.quantile(i / quantiles))
             cv = train_data_df.std() / train_data_df.mean()
@@ -218,6 +218,7 @@ def get_dataframe_processed_with_fake_cell2(data_folder: str = "data",
                  train_data_df.kurtosis(),
                  train_data_df.skew(), cv, range_value, iqr, flat_correlation,
                  value_count_cell1, value_count_cell2], axis=0)
+            statistics_df.fillna(0, inplace=True)
             id_random = int(filee.removesuffix(".csv"))
             y_row = label_df[label_df["id_random"] == id_random].iloc[0, :]
             y_label = y_row[label_column]

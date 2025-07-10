@@ -211,7 +211,8 @@ def get_dataframe_processed_with_fake_cell2(data_folder: str = "data",
             iqr = train_data_df.quantile(0.75) - train_data_df.quantile(0.25)
             value_count_cell1 = train_data_df["cell_label"].value_counts()
             value_count_cell2 = train_data_df["cell_label2"].value_counts()
-            value_count_cell2 = value_count_cell2.loc[value_count_cell2.index >= 0]
+            value_count_cell2 = value_count_cell2.loc[value_count_cell2.index >= 0].sort_index()
+            
             flat_correlation = pd.Series(train_data_df.corr().to_numpy().ravel())
             statistics_df = pd.concat(
                 [*quantile_list, train_data_df.mean(), train_data_df.std(),

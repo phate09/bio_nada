@@ -32,7 +32,7 @@ if __name__ == '__main__':
               }
 
     print("Preparing dataframe")
-    master_df = get_dataframe()
+    master_df = get_dataframe(label_file="lab-15.csv")
     master_df = preprocess_cell_label(master_df)
 
     os.chdir(generate_run_folder(prefix="model1"))  # change working directory to the run folder

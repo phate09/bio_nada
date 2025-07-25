@@ -322,10 +322,10 @@ def train_cell_model(config: dict, master_df: pd.DataFrame, run_folder: Path):
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
         plt.grid(True)
-        plt.savefig(f"train_loss_{fold_idx}.png")
+        plt.savefig(run_folder / f"train_loss_{fold_idx}.png")
         # plt.show()
         plt.close()
-        torch.save(model.state_dict(), f"model_weights_{fold_idx}.pth")
+        torch.save(model.state_dict(), run_folder / f"model_weights_{fold_idx}.pth")
     mean_accuracy = np.mean(accuracy_list)
     mean_f1 = np.mean(f1_score_list)
     mean_precision = np.mean(precision_list)
@@ -338,4 +338,14 @@ def train_cell_model(config: dict, master_df: pd.DataFrame, run_folder: Path):
     writer.add_scalar("Recall/eval", mean_recall, 0)
     writer.add_scalar("F1/eval", mean_f1, 0)
     writer.close()
+
+    # Save final model weights
+    torch.save({
+        'fold_models': [torch.load(run_folder / f"model_weights_{i}.pth") for i in range(n_splits)],
+        'model_config': {
+            'n_features': n_features,
+            'output_dim': output_dim
+        }
+    }, run_folder / "model_weights_all.pth")
+
     return mean_accuracy, mean_f1, mean_precision, mean_recall

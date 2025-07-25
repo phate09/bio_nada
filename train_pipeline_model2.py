@@ -25,7 +25,7 @@ if __name__ == '__main__':
               "lr": 1e-3,
               "lr_decay_factor": 0.8,
               "batch_size": 2 ** 18,
-              "epochs": 20,
+              "epochs": 5,
               "alpha": [0.45, 0.35, 0.20],  # for focal loss
               "gamma": 1.5,  # for focal loss
               "seed": 0,

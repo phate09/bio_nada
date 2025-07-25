@@ -54,24 +54,24 @@ def impute_nan(label_df: pd.DataFrame) -> pd.DataFrame:
     fill_dict = {'age': label_df['age'].median(),
                  'sex': 0,
                  'trop': label_df['trop'].median(),
-                 'ck': label_df['ck'].median(),
-                 'egfr': label_df['egfr'].median(),
-                 'chol': label_df['chol'].median(),
-                 'bmi': label_df['bmi'].median(),
-                 'wcc': label_df['wcc'].median(),
-                 'htn': 0,
-                 'dm': 0,
-                 'mi': 0,
-                 'pci': 0,
-                 'cabg': 0,
-                 'cva': 0,
-                 'copd': 0,
-                 'smoke': 0,
-                 'tapse_1': label_df['tapse_1'].median(),
-                 'ef_1': label_df['ef_1'].median(),
-                 'ef_2': label_df['ef_2'].median(),
-                 'mmp9_t_1': label_df['mmp9_t_1'].median(),
-                 'tnf_1': label_df['tnf_1'].median()
+                 # 'ck': label_df['ck'].median(),
+                 # 'egfr': label_df['egfr'].median(),
+                 # 'chol': label_df['chol'].median(),
+                 # 'bmi': label_df['bmi'].median(),
+                 # 'wcc': label_df['wcc'].median(),
+                 # 'htn': 0,
+                 # 'dm': 0,
+                 # 'mi': 0,
+                 # 'pci': 0,
+                 # 'cabg': 0,
+                 # 'cva': 0,
+                 # 'copd': 0,
+                 # 'smoke': 0,
+                 # 'tapse_1': label_df['tapse_1'].median(),
+                 # 'ef_1': label_df['ef_1'].median(),
+                 # 'ef_2': label_df['ef_2'].median(),
+                 # 'mmp9_t_1': label_df['mmp9_t_1'].median(),
+                 # 'tnf_1': label_df['tnf_1'].median()
                  }
     # Step 1: Identify existing columns in both the DataFrame and the dictionary
     existing_cols = label_df.columns.intersection(fill_dict.keys())
@@ -186,33 +186,68 @@ def get_dataframe_processed_with_fake_cell2(data_folder: str = "data",
     Returns a dataframe with statistics and label."""
 
     preprocessed_file = Path(".preprocessed_cell2_fake.csv")
+    master_df = _get_dataframe_processed(data_folder, label_column, label_file, preprocessed_file)
+    return master_df
+
+
+def get_dataframe_processed_with_predicted_cell_label(data_folder: str = "data",
+                                                      label_file: str = "label.csv",
+                                                      count_beads_file: str = "count_beads.csv",
+                                                      label_column: str = "Label") -> pd.DataFrame:
+    """Generates statistics for each cell and appends the label to the dataframe.
+    It uses fake data to fill in data for cell 2 and create statistics to use.
+    Returns a dataframe with statistics and label."""
+
+    preprocessed_file = Path(".preprocessed_cell2_predicted.csv")
+    master_df = _get_dataframe_processed(data_folder, label_column, label_file, count_beads_file,
+                                         preprocessed_file,
+                                         preprocess_cell_label=False)
+    return master_df
+
+
+def _get_dataframe_processed(data_folder, label_column, label_file, count_beads_file,
+                             preprocessed_file,
+                             preprocess_cell_label=True):
     if not preprocessed_file.is_file():
         # ---- merge all data csv in dataframe
         pre_tensor = []
         pre_y_tensor = []
         label_df_original = pd.read_csv(label_file)
+        label_df_original = label_df_original[["id_random", "Label", "age", "sex", "trop"]]
+        count_beads_df_original = pd.read_csv(count_beads_file)
+        count_beads_df_original = count_beads_df_original[
+            ["id_random", "tcb_samp1", "cb_col_samp1"]]
+        # fill the blanks in count_beads
+        count_beads_df = count_beads_df_original.fillna(value={"tcb_samp1": 0, "cb_col_samp1": 0})
         # fill blanks in label_df
-        label_df = impute_nan(label_df_original)
+        label_df = impute_nan(label_df_original).merge(count_beads_df, on="id_random",
+                                                      how="inner")
         for filee in progressbar.progressbar(os.listdir(
             data_folder),
             prefix="Preprocessing files"):  # Loop through CSV files in the dynamically specified directory
             if filee.startswith(".") or not filee.endswith(".csv"):
                 continue
             df = pd.read_csv(os.path.join(data_folder, filee))  # Read the CSV data into a DataFrame
-            df = preprocess_cell_label(df)  # preprocess the label of the cell on the fake column
+            if preprocess_cell_label:
+                df = preprocess_cell_label(
+                    df)  # preprocess the label of the cell on the fake column
             quantiles = 20
             quantile_list = []
             train_data_df = df
-            train_data_df = train_data_df[train_data_df["cell_label"] ==1] # filter only cell label 1
+            train_data_df = train_data_df[
+                train_data_df["cell_label"] == 1]  # filter only cell label 1
             for i in range(1, quantiles):
                 quantile_list.append(train_data_df.quantile(i / quantiles))
             cv = train_data_df.std() / train_data_df.mean()
             range_value = train_data_df.max() - train_data_df.min()
             iqr = train_data_df.quantile(0.75) - train_data_df.quantile(0.25)
-            value_count_cell1 = train_data_df["cell_label"].value_counts()
-            value_count_cell2 = train_data_df["cell_label2"].value_counts()
+            value_count_cell1 = train_data_df["cell_label"].value_counts() * label_df["tcb_samp1"] / \
+                                label_df["cb_col_samp1"] * 50
+            value_count_cell2 = train_data_df["cell_label2"].value_counts() * label_df[
+                "tcb_samp1"] / \
+                                label_df["cb_col_samp1"] * 50
             value_count_cell2 = value_count_cell2.loc[value_count_cell2.index >= 0].sort_index()
-            
+
             flat_correlation = pd.Series(train_data_df.corr().to_numpy().ravel())
             statistics_df = pd.concat(
                 [*quantile_list, train_data_df.mean(), train_data_df.std(),

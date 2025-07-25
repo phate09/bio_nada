@@ -5,6 +5,7 @@ The network tries to predict the cell label of each cell.
 The only values allowed are 0, 1 and 2 in the cell label column.
 """
 import os
+import pickle
 
 import pandas as pd
 
@@ -21,7 +22,7 @@ if __name__ == '__main__':
               "lr": 1e-3,  # initial learning rate
               "lr_decay_factor": 0.9,
               "batch_size": 2 ** 14,
-              "epochs": 20,
+              "epochs": 1,
               "alpha": [1.0, 1.0, 1.0],  # for focal loss, need 1 value per class
               "gamma": 2,  # for focal loss
               "seed": 0,
@@ -30,10 +31,21 @@ if __name__ == '__main__':
               # which column to use for stratified k-folds. "id_random" is used for keeping the patients together.
               "feature_columns": ["FSC", "SSC", "CD16 AF488", "CD14-PE"]
               }
+    cache_file = Path(".preprocessed_model1")
+    if cache_file.exists():
+        print("Loading preprocessed data from cache")
+        with open(cache_file, 'rb') as f:
+            master_df = pickle.load(f)
+    else:
+        print("Preparing dataframe")
+        master_df = get_dataframe(label_file="lab-15.csv")
+        master_df = preprocess_cell_label(master_df)
+        master_df.reset_index(drop=True, inplace=True)
 
+        print("Saving preprocessed data to cache")
+        with open(cache_file, 'wb') as f:
+            pickle.dump(master_df, f)
     print("Preparing dataframe")
-    master_df = get_dataframe(label_file="lab-15.csv")
-    master_df = preprocess_cell_label(master_df)
 
-    os.chdir(generate_run_folder(prefix="model1"))  # change working directory to the run folder
-    train_cell_model(config=config, master_df=master_df)
+    run_folder = generate_run_folder(prefix='model1')
+    train_cell_model(config=config, master_df=master_df,run_folder=run_folder)

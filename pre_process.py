@@ -218,10 +218,15 @@ def _get_dataframe_processed(data_folder, label_column, label_file, count_beads_
         count_beads_df_original = count_beads_df_original[
             ["id_random", "tcb_samp1", "cb_col_samp1"]]
         # fill the blanks in count_beads
-        count_beads_df = count_beads_df_original.fillna(value={"tcb_samp1": 0, "cb_col_samp1": 0})
+        median_non_zero_cb = count_beads_df_original["cb_col_samp1"][
+            count_beads_df_original["cb_col_samp1"] > 0].median()
+        median_non_zero_tcb = count_beads_df_original["tcb_samp1"][
+            count_beads_df_original["tcb_samp1"] > 0].median()
+        count_beads_df = count_beads_df_original.fillna(
+            value={"tcb_samp1": median_non_zero_tcb, "cb_col_samp1": median_non_zero_cb})
         # fill blanks in label_df
         label_df = impute_nan(label_df_original).merge(count_beads_df, on="id_random",
-                                                      how="inner")
+                                                       how="inner")
         for filee in progressbar.progressbar(os.listdir(
             data_folder),
             prefix="Preprocessing files"):  # Loop through CSV files in the dynamically specified directory
@@ -241,11 +246,17 @@ def _get_dataframe_processed(data_folder, label_column, label_file, count_beads_
             cv = train_data_df.std() / train_data_df.mean()
             range_value = train_data_df.max() - train_data_df.min()
             iqr = train_data_df.quantile(0.75) - train_data_df.quantile(0.25)
-            value_count_cell1 = train_data_df["cell_label"].value_counts() * label_df["tcb_samp1"] / \
-                                label_df["cb_col_samp1"] * 50
-            value_count_cell2 = train_data_df["cell_label2"].value_counts() * label_df[
-                "tcb_samp1"] / \
-                                label_df["cb_col_samp1"] * 50
+            id_random = int(filee.removesuffix(".csv"))
+
+            value_count_cell1 = train_data_df["cell_label"].value_counts().sort_index() * \
+                                label_df["tcb_samp1"][label_df["id_random"] == id_random].item() / \
+                                label_df["cb_col_samp1"][
+                                    label_df["id_random"] == id_random].item() * 50
+            value_count_cell2 = train_data_df["cell_label2"].value_counts().sort_index() * \
+                                label_df[
+                                    "tcb_samp1"][label_df["id_random"] == id_random].item() / \
+                                label_df["cb_col_samp1"][
+                                    label_df["id_random"] == id_random].item() * 50
             value_count_cell2 = value_count_cell2.loc[value_count_cell2.index >= 0].sort_index()
 
             flat_correlation = pd.Series(train_data_df.corr().to_numpy().ravel())
@@ -253,16 +264,18 @@ def _get_dataframe_processed(data_folder, label_column, label_file, count_beads_
                 [*quantile_list, train_data_df.mean(), train_data_df.std(),
                  train_data_df.kurtosis(),
                  train_data_df.skew(), cv, range_value, iqr, flat_correlation,
-                 value_count_cell1, value_count_cell2], axis=0)
+                 value_count_cell1, value_count_cell2], axis=0)  # 19*9+9*7+81+1+4+20
             statistics_df.fillna(0, inplace=True)
-            id_random = int(filee.removesuffix(".csv"))
             y_row = label_df[label_df["id_random"] == id_random].iloc[0, :]
             y_label = y_row[label_column]
             y_data = y_row[(y_row.index != label_column) & (y_row.index != "id_random")]
+            y_data = y_data.drop(labels=["tcb_samp1", "cb_col_samp1"])  # removes unused columns
             pre_tensor.append(np.concatenate([statistics_df.values.flatten(), y_data.values]))
             pre_y_tensor.append(y_label)
         master_train_data_df = pd.DataFrame(pre_tensor)
+        master_train_data_df.fillna(0, inplace=True)
         master_y_data_df = pd.DataFrame(pre_y_tensor)
+        master_y_data_df.fillna(0, inplace=True)
         master_df = pd.concat([master_train_data_df, master_y_data_df], axis=1)  # append lbl at end
         master_df.to_csv(preprocessed_file, header=False, index=False)
     else:

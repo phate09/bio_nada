@@ -180,13 +180,15 @@ def get_dataframe_processed_with_cell2(data_folder: str = "data",
 
 def get_dataframe_processed_with_fake_cell2(data_folder: str = "data",
                                             label_file: str = "label.csv",
+                                            count_beads_file: str = "count_beads.csv",
                                             label_column: str = "Label") -> pd.DataFrame:
     """Generates statistics for each cell and appends the label to the dataframe.
     It uses fake data to fill in data for cell 2 and create statistics to use.
     Returns a dataframe with statistics and label."""
 
     preprocessed_file = Path(".preprocessed_cell2_fake.csv")
-    master_df = _get_dataframe_processed(data_folder, label_column, label_file, preprocessed_file)
+    master_df = _get_dataframe_processed(data_folder, label_column, label_file, count_beads_file,
+                                         preprocessed_file)
     return master_df
 
 
@@ -201,13 +203,13 @@ def get_dataframe_processed_with_predicted_cell_label(data_folder: str = "data",
     preprocessed_file = Path(".preprocessed_cell2_predicted.csv")
     master_df = _get_dataframe_processed(data_folder, label_column, label_file, count_beads_file,
                                          preprocessed_file,
-                                         preprocess_cell_label=False)
+                                         use_preprocess_cell_label=False)
     return master_df
 
 
 def _get_dataframe_processed(data_folder, label_column, label_file, count_beads_file,
                              preprocessed_file,
-                             preprocess_cell_label=True):
+                             use_preprocess_cell_label=True):
     if not preprocessed_file.is_file():
         # ---- merge all data csv in dataframe
         pre_tensor = []
@@ -233,7 +235,7 @@ def _get_dataframe_processed(data_folder, label_column, label_file, count_beads_
             if filee.startswith(".") or not filee.endswith(".csv"):
                 continue
             df = pd.read_csv(os.path.join(data_folder, filee))  # Read the CSV data into a DataFrame
-            if preprocess_cell_label:
+            if use_preprocess_cell_label:
                 df = preprocess_cell_label(
                     df)  # preprocess the label of the cell on the fake column
             quantiles = 20
@@ -248,15 +250,12 @@ def _get_dataframe_processed(data_folder, label_column, label_file, count_beads_
             iqr = train_data_df.quantile(0.75) - train_data_df.quantile(0.25)
             id_random = int(filee.removesuffix(".csv"))
 
-            value_count_cell1 = train_data_df["cell_label"].value_counts().sort_index() * \
-                                label_df["tcb_samp1"][label_df["id_random"] == id_random].item() / \
-                                label_df["cb_col_samp1"][
-                                    label_df["id_random"] == id_random].item() * 50
-            value_count_cell2 = train_data_df["cell_label2"].value_counts().sort_index() * \
-                                label_df[
-                                    "tcb_samp1"][label_df["id_random"] == id_random].item() / \
-                                label_df["cb_col_samp1"][
-                                    label_df["id_random"] == id_random].item() * 50
+            tcb_samp = label_df["tcb_samp1"][label_df["id_random"] == id_random].item()
+            cb_col_samp = label_df["cb_col_samp1"][label_df["id_random"] == id_random].item()
+            cell_cluster_count2 = train_data_df["cell_label"].value_counts().sort_index()
+            value_count_cell1 = cell_cluster_count2 * tcb_samp / (cb_col_samp * 50)
+            cell_cluster_count2 = train_data_df["cell_label2"].value_counts().sort_index()
+            value_count_cell2 = cell_cluster_count2 * tcb_samp / (cb_col_samp * 50)
             value_count_cell2 = value_count_cell2.loc[value_count_cell2.index >= 0].sort_index()
 
             flat_correlation = pd.Series(train_data_df.corr().to_numpy().ravel())

@@ -22,8 +22,8 @@ if __name__ == '__main__':
     device = torch.device('cpu')
     # device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     print(f"Start. Using {device}")
-    # master_df = get_dataframe_processed_with_fake_cell2(label_file="lab-15.csv")
-    master_df = get_dataframe_processed_with_predicted_cell_label(
-        data_folder="data_model_prediction", label_file="lab-15.csv")
+    master_df = get_dataframe_processed_with_fake_cell2(label_file="lab-15.csv")
+    # master_df = get_dataframe_processed_with_predicted_cell_label(
+    #     data_folder="data_model_prediction", label_file="lab-15.csv")
     results = train_methods.train(config, master_df, device)
     print(pd.Series(results))
